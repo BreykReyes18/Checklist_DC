@@ -1,21 +1,16 @@
-import { supabase } from "../supabaseClient"
+// services/bitacoraService.js
 
-// GUARDAR
+import { supabase } from "./supabaseClient"
+
 export const guardarBitacora = async (data) => {
-  const { error } = await supabase
-    .from("bitacora") 
+  return await supabase
+    .from("bitacoras")
     .insert([data])
-
-  if (error) {
-    console.error(error)
-    alert("Error guardando bitácora")
-  }
 }
 
-// LISTAR
-export const getBitacora = async () => {
+export const getBitacoras = async () => {
   return await supabase
-    .from("bitacora") 
+    .from("bitacoras")
     .select("*")
-    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
 }
