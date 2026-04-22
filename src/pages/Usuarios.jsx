@@ -1,44 +1,86 @@
-// pages/Usuarios.jsx
+// src/pages/Usuarios.jsx
+// PANEL ADMIN PRO - CREAR USUARIOS + TABLA
 
 import React, { useState } from "react"
-import { Card, Input, Button, Select, Table } from "antd"
+import {
+  Card,
+  Input,
+  Button,
+  Select,
+  Table,
+  Tag,
+  Switch
+} from "antd"
+
+import { crearUsuario } from "../services/userService"
 
 const { Option } = Select
 
 export default function Usuarios() {
-  const [usuarios, setUsuarios] = useState([
-    {
-      id: 1,
-      nombre: "Administrador DC",
-      correo: "admin@datacenter.com",
-      rol: "Administrador"
-    }
-  ])
+  const [usuarios, setUsuarios] = useState([])
 
   const [form, setForm] = useState({
     nombre: "",
-    correo: "",
-    rol: ""
+    usuario: "",
+    email: "",
+    password: "",
+    rol: "",
+    area: ""
   })
 
-  const agregarUsuario = () => {
-    if (!form.nombre || !form.correo || !form.rol) {
-      alert("Todos los campos son obligatorios")
+  const guardarUsuario = async () => {
+    if (
+      !form.nombre ||
+      !form.usuario ||
+      !form.email ||
+      !form.password ||
+      !form.rol
+    ) {
+      alert("Completa todos los campos obligatorios")
       return
     }
 
+    const ok = await crearUsuario({
+      email: form.email,
+      password: form.password,
+      nombre: form.nombre,
+      usuario: form.usuario,
+      rol: form.rol,
+      area: form.area
+    })
+
+    if (!ok) return
+
     const nuevoUsuario = {
       id: Date.now(),
-      ...form
+      nombre: form.nombre,
+      usuario: form.usuario,
+      correo: form.email,
+      rol: form.rol,
+      area: form.area,
+      activo: true
     }
 
-    setUsuarios([...usuarios, nuevoUsuario])
+    setUsuarios([nuevoUsuario, ...usuarios])
 
     setForm({
       nombre: "",
-      correo: "",
-      rol: ""
+      usuario: "",
+      email: "",
+      password: "",
+      rol: "",
+      area: ""
     })
+  }
+
+  const cambiarEstado = (id) => {
+    setUsuarios((prev) =>
+      prev.map((u) =>
+        u.id === id
+          ? { ...u, activo: !u.activo }
+          : u
+      )
+    )
   }
 
   const columnas = [
@@ -48,6 +90,11 @@ export default function Usuarios() {
       key: "nombre"
     },
     {
+      title: "Usuario",
+      dataIndex: "usuario",
+      key: "usuario"
+    },
+    {
       title: "Correo",
       dataIndex: "correo",
       key: "correo"
@@ -55,22 +102,49 @@ export default function Usuarios() {
     {
       title: "Rol",
       dataIndex: "rol",
-      key: "rol"
+      key: "rol",
+      render: (rol) => (
+        <Tag color={
+          rol === "Administrador"
+            ? "red"
+            : "blue"
+        }>
+          {rol}
+        </Tag>
+      )
+    },
+    {
+      title: "Área",
+      dataIndex: "area",
+      key: "area"
+    },
+    {
+      title: "Activo",
+      dataIndex: "activo",
+      key: "activo",
+      render: (_, record) => (
+        <Switch
+          checked={record.activo}
+          onChange={() =>
+            cambiarEstado(record.id)
+          }
+        />
+      )
     }
   ]
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">
-        Gestión de Usuarios
+        Administración de Usuarios
       </h1>
 
       <Card className="rounded-2xl shadow-lg mb-6">
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
 
           <Input
-            placeholder="Nombre"
+            placeholder="Nombre completo"
             value={form.nombre}
             onChange={(e) =>
               setForm({
@@ -81,12 +155,34 @@ export default function Usuarios() {
           />
 
           <Input
-            placeholder="Correo"
-            value={form.correo}
+            placeholder="Usuario"
+            value={form.usuario}
             onChange={(e) =>
               setForm({
                 ...form,
-                correo: e.target.value
+                usuario: e.target.value
+              })
+            }
+          />
+
+          <Input
+            placeholder="Correo"
+            value={form.email}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                email: e.target.value
+              })
+            }
+          />
+
+          <Input.Password
+            placeholder="Contraseña"
+            value={form.password}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                password: e.target.value
               })
             }
           />
@@ -105,23 +201,34 @@ export default function Usuarios() {
               Administrador
             </Option>
 
-            <Option value="Supervisor">
-              Supervisor
-            </Option>
-
             <Option value="Operador">
               Operador
             </Option>
+
+            <Option value="Supervisor">
+              Supervisor
+            </Option>
           </Select>
+
+          <Input
+            placeholder="Área"
+            value={form.area}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                area: e.target.value
+              })
+            }
+          />
 
         </div>
 
         <Button
           type="primary"
           className="mt-4"
-          onClick={agregarUsuario}
+          onClick={guardarUsuario}
         >
-          Agregar Usuario
+          Crear Usuario
         </Button>
 
       </Card>
@@ -133,7 +240,7 @@ export default function Usuarios() {
           dataSource={usuarios}
           rowKey="id"
           pagination={{
-            pageSize: 6
+            pageSize: 8
           }}
         />
 

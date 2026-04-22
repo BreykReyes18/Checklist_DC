@@ -1,27 +1,80 @@
+// src/store/authStore.js
+// LOGIN REAL PROFESIONAL CON SUPABASE AUTH + ZUSTAND
+
 import { create } from "zustand"
+import { supabase } from "../services/supabaseClient.js"
 
 export const useAuthStore = create((set) => ({
-  usuario: JSON.parse(localStorage.getItem("usuario")) || null,
+  user: null,
+  session: null,
+  loading: true,
 
-  login: (data) => {
-    localStorage.setItem("usuario", JSON.stringify(data))
+  // =========================
+  // LOGIN
+  // =========================
+
+  login: async (email, password) => {
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+    if (error) {
+      alert(error.message)
+      return false
+    }
 
     set({
-      usuario: data
+      user: data.user,
+      session: data.session
+    })
+
+    return true
+  },
+
+  // =========================
+  // LOGOUT
+  // =========================
+
+  logout: async () => {
+    await supabase.auth.signOut()
+
+    set({
+      user: null,
+      session: null
     })
   },
 
-  logout: () => {
-    localStorage.removeItem("usuario")
+  // =========================
+  // RECUPERAR SESIÓN
+  // =========================
+
+  obtenerSesion: async () => {
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
 
     set({
-      usuario: null
+      session,
+      user: session?.user || null,
+      loading: false
     })
   },
 
-  // Helper opcional para validación de roles
-  hasRole: (role) => {
-    const usuario = JSON.parse(localStorage.getItem("usuario"))
-    return usuario?.rol === role
+  // =========================
+  // RESET PASSWORD
+  // =========================
+
+  resetPassword: async (email) => {
+    const { error } =
+      await supabase.auth.resetPasswordForEmail(email)
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    alert("Correo de recuperación enviado")
   }
 }))

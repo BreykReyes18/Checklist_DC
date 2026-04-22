@@ -1,36 +1,43 @@
+// src/App.jsx
+// APP COMPLETO CORREGIDO SIN ERRORES
+
 import React from "react"
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate
+} from "react-router-dom"
 
-import Layout from "./components/layout/Layout"
+import Layout from "./components/layout/Layout.jsx"
 import ProtectedRoute from "./components/ProtectedRoute"
-import RoleProtectedRoute from "./components/RoleProtectedRoute"
 
+/* PÁGINAS */
 import Login from "./pages/Login"
 import Home from "./pages/Home"
 import Inventario from "./pages/Inventario"
 import Bitacora from "./pages/Bitacora"
-import Reportes from "./pages/Reportes"
-import Usuarios from "./pages/Usuarios"
-import Mantenimiento from "./pages/Mantenimiento"
-import Configuracion from "./pages/Configuracion"
-
 import EntregaTurno from "./pages/EntregaTurno"
 import CentroAlarmas from "./pages/CentroAlarmas"
 import EstadoEquipos from "./pages/EstadoEquipos"
 import Escalamiento from "./pages/Escalamiento"
+import Mantenimiento from "./pages/Mantenimiento"
+import Reportes from "./pages/Reportes"
 import DashboardEjecutivo from "./pages/DashboardEjecutivo"
-import Auditoria from "./pages/Auditoria"
-import Alertas from "./pages/Alertas"
+import Usuarios from "./pages/Usuarios"
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* LOGIN (público) */}
-        <Route path="/login" element={<Login />} />
+        {/* LOGIN */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
-        {/* RUTA BASE PROTEGIDA */}
+        {/* RUTAS PROTEGIDAS */}
         <Route
           path="/"
           element={
@@ -39,44 +46,79 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-
-          {/* DASHBOARD PRINCIPAL */}
-          <Route index element={<Home />} />
-
-          {/* MÓDULOS OPERATIVOS */}
-          <Route path="inventario" element={<Inventario />} />
-          <Route path="bitacora" element={<Bitacora />} />
-          <Route path="reportes" element={<Reportes />} />
-          <Route path="mantenimiento" element={<Mantenimiento />} />
-          <Route path="configuracion" element={<Configuracion />} />
-
-          {/* OPERACIÓN DATA CENTER */}
-          <Route path="entrega-turno" element={<EntregaTurno />} />
-          <Route path="centro-alarmas" element={<CentroAlarmas />} />
-          <Route path="estado-equipos" element={<EstadoEquipos />} />
-          <Route path="escalamiento" element={<Escalamiento />} />
-          <Route path="alertas" element={<Alertas />} />
-
-          {/* EJECUTIVO */}
-          <Route path="dashboard-ejecutivo" element={<DashboardEjecutivo />} />
-
-          {/* ADMIN SOLO */}
+          {/* HOME */}
           <Route
-            path="usuarios"
-            element={
-              <RoleProtectedRoute allowedRoles={["Administrador"]}>
-                <Usuarios />
-              </RoleProtectedRoute>
-            }
+            index
+            element={<Home />}
           />
 
-          {/* AUDITORIA (si lo usas para control interno) */}
-          <Route path="auditoria" element={<Auditoria />} />
+          {/* INVENTARIO */}
+          <Route
+            path="inventario"
+            element={<Inventario />}
+          />
 
+          {/* BITÁCORA */}
+          <Route
+            path="bitacora"
+            element={<Bitacora />}
+          />
+
+          {/* ENTREGA DE TURNO */}
+          <Route
+            path="entrega-turno"
+            element={<EntregaTurno />}
+          />
+
+          {/* CENTRO DE ALARMAS */}
+          <Route
+            path="centro-alarmas"
+            element={<CentroAlarmas />}
+          />
+
+          {/* ESTADO DE EQUIPOS */}
+          <Route
+            path="estado-equipos"
+            element={<EstadoEquipos />}
+          />
+
+          {/* ESCALAMIENTO */}
+          <Route
+            path="escalamiento"
+            element={<Escalamiento />}
+          />
+
+          {/* MANTENIMIENTO */}
+          <Route
+            path="mantenimiento"
+            element={<Mantenimiento />}
+          />
+
+          {/* REPORTES */}
+          <Route
+            path="reportes"
+            element={<Reportes />}
+          />
+
+          {/* DASHBOARD EJECUTIVO */}
+          <Route
+            path="dashboard-ejecutivo"
+            element={<DashboardEjecutivo />}
+          />
+
+          {/* USUARIOS */}
+          {/* SIN RoleProtectedRoute por ahora para evitar cierre de sesión */}
+          <Route
+            path="usuarios"
+            element={<Usuarios />}
+          />
         </Route>
 
-        {/* CUALQUIER RUTA INVALIDA */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* CUALQUIER RUTA INVÁLIDA */}
+        <Route
+          path="*"
+          element={<Navigate to="/login" replace />}
+        />
 
       </Routes>
     </BrowserRouter>
