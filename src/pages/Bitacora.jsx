@@ -156,7 +156,7 @@ export default function Bitacora() {
         }
       })
 
-      // 🔥 MENOS ESPACIO ENTRE TABLAS
+      //MENOS ESPACIO ENTRE TABLAS
       startY = doc.lastAutoTable.finalY + 4
     }
 

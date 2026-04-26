@@ -130,7 +130,7 @@ export default function Layout() {
           }}
         >
           <h2 className="text-xl font-bold">
-            Sistema de Gestión Data Center by Brandon Cruz Reyes.
+            Sistema de Gestión Data Center por Brandon Cruz Reyes.
           </h2>
 
           <Button

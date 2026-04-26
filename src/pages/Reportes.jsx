@@ -64,7 +64,7 @@ export default function Reportes() {
     const pageHeight = doc.internal.pageSize.height
     const pageWidth = doc.internal.pageSize.width
 
-    // 👉 SI HAY SELECCIÓN, USA ESO
+    // SI HAY SELECCIÓN, USA ESO
     const dataPDF =
       seleccionadas.length > 0
         ? filtrados.filter((b) => seleccionadas.includes(b.id))
