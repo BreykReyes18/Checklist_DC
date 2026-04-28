@@ -1,35 +1,34 @@
 import { create } from "zustand"
 
-const initialState = {
-  fecha: "",
-  responsable: "",
-  temperatura: "",
-  energia: "",
-  observacion: "",
-
-  ups_revisada: false,
-  apc_revisado: false,
-  switch_core: false,
-  alarmas: false,
-  ibm_revisado: false,
-  energia_comercial: false,
-  planta_electrica: false,
-  generador: false,
-
-  red_wan_lan: false,
-  aire_acondicionado: false,
-  humedad_ok: false,
-  control_acceso: false,
-  sensores_humo: false,
-  extintores: false,
-  puertas_seguridad: false,
-  panel_incendios: false,
-
-  checklist_completo: false
-}
-
 export const useBitacoraStore = create((set) => ({
-  bitacora: initialState,
+  bitacora: {
+    fecha: "",
+    responsable: "",
+    temperatura: "",
+    energia: "",
+    observacion: "",
+
+    ups_revisada: false,
+    apc_revisado: false,
+    energia_comercial: false,
+    planta_electrica: false,
+    generador: false,
+    switch_core: false,
+    ibm_revisado: false,
+    red_wan_lan: false,
+    aire_acondicionado: false,
+    humedad_ok: false,
+    alarmas: false,
+    control_acceso: false,
+    sensores_humo: false,
+    extintores: false,
+    puertas_seguridad: false,
+    panel_incendios: false,
+
+    // 🔥 NUEVO CAMPO DINÁMICO
+    equipos_extra: []
+  },
+
   editandoId: null,
 
   actualizarCampo: (campo, valor) =>
@@ -42,16 +41,38 @@ export const useBitacoraStore = create((set) => ({
 
   resetBitacora: () =>
     set({
-      bitacora: initialState,
+      bitacora: {
+        fecha: "",
+        responsable: "",
+        temperatura: "",
+        energia: "",
+        observacion: "",
+
+        ups_revisada: false,
+        apc_revisado: false,
+        energia_comercial: false,
+        planta_electrica: false,
+        generador: false,
+        switch_core: false,
+        ibm_revisado: false,
+        red_wan_lan: false,
+        aire_acondicionado: false,
+        humedad_ok: false,
+        alarmas: false,
+        control_acceso: false,
+        sensores_humo: false,
+        extintores: false,
+        puertas_seguridad: false,
+        panel_incendios: false,
+
+        equipos_extra: []
+      },
       editandoId: null
     }),
 
   setEditando: (id, data) =>
     set({
       editandoId: id,
-      bitacora: {
-        ...initialState,
-        ...data
-      }
+      bitacora: data
     })
 }))
