@@ -2,8 +2,8 @@ import { create } from "zustand"
 
 const initialState = {
   fecha: "",
-  responsable: "",
-  temperatura: "",
+  responsable: null,
+  temperatura: null,
   energia: "",
   observacion: "",
 

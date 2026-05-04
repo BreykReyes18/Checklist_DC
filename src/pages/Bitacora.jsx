@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import {
   Card,
   Input,
@@ -14,6 +14,8 @@ import {
   actualizarBitacora
 } from "../services/bitacoraService"
 
+import { getInventario } from "../services/inventarioService"
+
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
@@ -25,6 +27,8 @@ export default function Bitacora() {
     editandoId
   } = useBitacoraStore()
 
+  const [equipos, setEquipos] = useState([])
+
   // =========================
   // RESPONSABLES
   // =========================
@@ -34,64 +38,92 @@ export default function Bitacora() {
   ]
 
   // =========================
-  // CHECKBOX
+  // FECHA AUTOMÁTICA
   // =========================
-  const Check = ({ campo, label }) => (
-    <label style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-      <input
-        type="checkbox"
-        checked={!!bitacora[campo]}
-        onChange={(e) =>
-          actualizarCampo(campo, e.target.checked)
-        }
-      />
-      {label}
-    </label>
-  )
+  useEffect(() => {
+    const now = new Date()
+    const fecha = now.toISOString().split("T")[0]
+    const hora = now.toLocaleTimeString()
+
+    actualizarCampo("fecha", `${fecha} ${hora}`)
+  }, [])
+
+  // =========================
+  // CARGAR INVENTARIO
+  // =========================
+  useEffect(() => {
+    const cargar = async () => {
+      const { data } = await getInventario()
+      setEquipos(data || [])
+    }
+    cargar()
+  }, [])
+
+  // =========================
+  // CHECK DINÁMICO
+  // =========================
+  const toggleEquipo = (id) => {
+    const actual = bitacora.equipos_extra || []
+
+    const existe = actual.find(e => e.id === id)
+
+    let nuevos
+
+    if (existe) {
+      nuevos = actual.map(e =>
+        e.id === id ? { ...e, revisado: !e.revisado } : e
+      )
+    } else {
+      nuevos = [...actual, { id, revisado: true }]
+    }
+
+    actualizarCampo("equipos_extra", nuevos)
+  }
+
+  const getChecked = (id) => {
+    return bitacora.equipos_extra?.find(e => e.id === id)?.revisado || false
+  }
+
+  // =========================
+  // AGRUPAR
+  // =========================
+  const agrupar = (lista) => {
+    return lista.reduce((acc, eq) => {
+      const cat = eq.categoria || "Otros"
+      if (!acc[cat]) acc[cat] = []
+      acc[cat].push(eq)
+      return acc
+    }, {})
+  }
 
   // =========================
   // GUARDAR
   // =========================
   const guardar = async () => {
-    if (!bitacora.fecha || !bitacora.responsable) {
-      message.warning("Completa los campos obligatorios")
+    if (!bitacora.responsable) {
+      message.warning("Selecciona responsable")
       return
     }
 
-    const checklist_completo = Object.entries(bitacora)
-      .filter(([_, v]) => typeof v === "boolean")
-      .every(([_, v]) => v === true)
+    try {
+      const data = {
+        ...bitacora,
+        equipos_extra: bitacora.equipos_extra || []
+      }
 
-    const data = {
-      ...bitacora,
-      checklist_completo
-    }
+      if (editandoId) {
+        await actualizarBitacora(editandoId, data)
+      } else {
+        await guardarBitacora(data)
+      }
 
-    const res = editandoId
-      ? await actualizarBitacora(editandoId, data)
-      : await guardarBitacora(data)
+      message.success("Bitácora guardada")
+      resetBitacora()
 
-    const { error } = res
-
-    if (error) {
+    } catch (error) {
       console.error(error)
       message.error("Error al guardar")
-      return
     }
-
-    message.success("Bitácora guardada correctamente")
-    resetBitacora()
-  }
-
-  // =========================
-  // ESTADO
-  // =========================
-  const estado = (v) => (v ? "BUENO" : "ALERTA")
-
-  const getColor = (value) => {
-    if (value === "BUENO") return [0, 150, 0]
-    if (value === "ALERTA") return [200, 0, 0]
-    return [0, 0, 0]
   }
 
   // =========================
@@ -99,22 +131,38 @@ export default function Bitacora() {
   // =========================
   const generarPDF = async () => {
     const doc = new jsPDF()
-
     const pageHeight = doc.internal.pageSize.height
 
-    // LOGO
-    try {
-      const img = new Image()
-      img.src = "/logo03.png"
+    // =========================
+// LOGO
+// =========================
+try {
+  const img = new Image()
+  img.src = "/logo03.png" // asegúrate que está en /public
 
-      await new Promise((resolve) => {
-        img.onload = resolve
-      })
+  await new Promise((resolve) => {
+    img.onload = resolve
+  })
 
-      doc.addImage(img, "WEBP", 130, 8, 70, 20)
-    } catch (e) {}
+  doc.addImage(img, "PNG", 130, 8, 70, 20)
+} catch (e) {
+  console.warn("Error cargando logo", e)
+}
 
-    // ENCABEZADO
+    const getEstado = (id) => {
+      const eq = bitacora.equipos_extra?.find(e => e.id === id)
+      if (!eq) return "NO REVISADO"
+      return eq.revisado ? "REVISADO" : "ALERTA"
+    }
+
+    const getColor = (value) => {
+      if (value === "REVISADO") return [0, 150, 0]
+      return [200, 0, 0]
+    }
+
+    const agrupados = agrupar(equipos)
+
+    // HEADER
     doc.setFontSize(16)
     doc.text("CASA PELLAS", 14, 15)
 
@@ -127,9 +175,6 @@ export default function Bitacora() {
 
     let startY = 40
 
-    // =========================
-    // TABLA REUTILIZABLE
-    // =========================
     const makeTable = (title, rows) => {
       autoTable(doc, {
         startY,
@@ -144,7 +189,7 @@ export default function Bitacora() {
 
         columnStyles: {
           0: { cellWidth: 130 },
-          1: { cellWidth: 50 }
+          1: { cellWidth: 50, halign: "center" } // 🔥 ALINEADO
         },
 
         didParseCell: (data) => {
@@ -156,62 +201,24 @@ export default function Bitacora() {
         }
       })
 
-      //MENOS ESPACIO ENTRE TABLAS
       startY = doc.lastAutoTable.finalY + 4
     }
 
-    // =========================
-    // TABLAS
-    // =========================
-    makeTable("Energía", [
-      ["Energía Comercial", estado(bitacora.energia_comercial)],
-      ["Planta Eléctrica", estado(bitacora.planta_electrica)],
-      ["Generador", estado(bitacora.generador)],
-      ["Energía", bitacora.energia || ""]
-    ])
+    Object.entries(agrupados).forEach(([cat, items]) => {
+      makeTable(
+        cat,
+        items.map(e => [
+          e.nombre_equipo,
+          getEstado(e.id)
+        ])
+      )
+    })
 
-    makeTable("Infraestructura IT", [
-      ["UPS", estado(bitacora.ups_revisada)],
-      ["APC", estado(bitacora.apc_revisado)],
-      ["IBM", estado(bitacora.ibm_revisado)],
-      ["Switch Core", estado(bitacora.switch_core)]
-    ])
-
-    makeTable("Red", [
-      ["Red WAN/LAN", estado(bitacora.red_wan_lan)]
-    ])
-
-    makeTable("Ambiente", [
-      ["Aire Acondicionado", estado(bitacora.aire_acondicionado)],
-      ["Humedad OK", estado(bitacora.humedad_ok)],
-      ["Temperatura", bitacora.temperatura ? `${bitacora.temperatura}°C` : ""]
-    ])
-
-    makeTable("Seguridad", [
-      ["Alarmas", estado(bitacora.alarmas)],
-      ["Control Acceso", estado(bitacora.control_acceso)],
-      ["Sensores Humo", estado(bitacora.sensores_humo)],
-      ["Extintores", estado(bitacora.extintores)],
-      ["Puertas Seguridad", estado(bitacora.puertas_seguridad)],
-      ["Panel Incendios", estado(bitacora.panel_incendios)]
-    ])
-
-    // =========================
     // OBSERVACIONES
-    // =========================
-    doc.setFontSize(12)
     doc.text("OBSERVACIONES:", 14, startY + 6)
+    doc.text(bitacora.observacion || "-", 14, startY + 12)
 
-    doc.setFontSize(10)
-    doc.text(
-      bitacora.observacion || "Sin observaciones",
-      14,
-      startY + 12
-    )
-
-    // =========================
-    // FIRMAS (FIJAS ABAJO)
-    // =========================
+    // FIRMAS
     const footerY = pageHeight - 25
 
     doc.text("_________________________", 40, footerY)
@@ -226,6 +233,8 @@ export default function Bitacora() {
   // =========================
   // UI
   // =========================
+  const agrupadosUI = agrupar(equipos)
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">
@@ -234,45 +243,35 @@ export default function Bitacora() {
 
       <Card>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
 
-          <Input
-            type="date"
-            value={bitacora.fecha}
-            onChange={(e) =>
-              actualizarCampo("fecha", e.target.value)
-            }
-          />
-
+          {/* RESPONSABLE */}
           <Select
-            value={bitacora.responsable}
-            onChange={(v) =>
-              actualizarCampo("responsable", v)
-            }
-            options={responsables.map(r => ({
-              label: r,
-              value: r
-            }))}
-          />
+  placeholder="Responsable"
+  allowClear
+  value={bitacora.responsable ?? undefined}
+  onChange={(v) => actualizarCampo("responsable", v)}
+  options={responsables.map(r => ({
+    label: r,
+    value: r
+  }))}
+/>
 
+          {/* TEMPERATURA */}
           <Select
-            value={bitacora.temperatura}
-            onChange={(v) =>
-              actualizarCampo("temperatura", v)
-            }
-            options={Array.from({ length: 16 }, (_, i) => {
-              const val = 15 + i
-              return { label: `${val}°C`, value: val }
-            })}
-          />
+  placeholder="Temperatura"
+  allowClear
+  value={bitacora.temperatura ?? undefined}
+  onChange={(v) => actualizarCampo("temperatura", v)}
+  options={Array.from({ length: 16 }, (_, i) => {
+    const val = 15 + i
+    return { label: `${val}°C`, value: val }
+  })}
+/>
 
-          <Input
-            placeholder="Energía"
-            value={bitacora.energia}
-            onChange={(e) =>
-              actualizarCampo("energia", e.target.value)
-            }
-          />
+          {/* FECHA AUTOMÁTICA */}
+          <input type="hidden" value={bitacora.fecha || ""} readOnly/>
+
         </div>
 
         <Input.TextArea
@@ -284,30 +283,28 @@ export default function Bitacora() {
           }
         />
 
-        <Divider>Infraestructura</Divider>
+        <Divider>Checklist por Equipos</Divider>
 
-        <div className="grid md:grid-cols-2 gap-2">
-          <Check campo="ups_revisada" label="UPS" />
-          <Check campo="apc_revisado" label="APC" />
-          <Check campo="switch_core" label="Switch Core" />
-          <Check campo="alarmas" label="Alarmas" />
-          <Check campo="ibm_revisado" label="IBM" />
-          <Check campo="energia_comercial" label="Energía Comercial" />
-          <Check campo="planta_electrica" label="Planta Eléctrica" />
-          <Check campo="generador" label="Generador" />
-          <Check campo="red_wan_lan" label="Red WAN/LAN" />
-          <Check campo="aire_acondicionado" label="Aire A/C" />
-          <Check campo="humedad_ok" label="Humedad OK" />
-          <Check campo="control_acceso" label="Control Acceso" />
-          <Check campo="sensores_humo" label="Sensores Humo" />
-          <Check campo="extintores" label="Extintores" />
-          <Check campo="puertas_seguridad" label="Puertas Seguridad" />
-          <Check campo="panel_incendios" label="Panel Incendios" />
-        </div>
+        {Object.entries(agrupadosUI).map(([cat, items]) => (
+          <div key={cat}>
+            <h3 className="font-bold mt-3">{cat}</h3>
+
+            {items.map(e => (
+              <label key={e.id} style={{ display: "block" }}>
+                <input
+                  type="checkbox"
+                  checked={getChecked(e.id)}
+                  onChange={() => toggleEquipo(e.id)}
+                />
+                {" "}{e.nombre_equipo}
+              </label>
+            ))}
+          </div>
+        ))}
 
         <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
           <Button type="primary" onClick={guardar}>
-            {editandoId ? "Actualizar" : "Guardar"}
+            Guardar
           </Button>
 
           <Button onClick={resetBitacora}>
