@@ -1,97 +1,255 @@
-// src/pages/EntregaTurno.jsx
+import React, { useEffect } from "react"
 
-import React, { useState } from "react"
 import {
   Card,
   Input,
   Button,
   Table,
-  Select
+  Select,
+  Tag,
+  message,
+  Popconfirm
 } from "antd"
 
+import {
+  guardarEntregaTurno,
+  getEntregasTurno,
+  actualizarEntregaTurno,
+  eliminarEntregaTurno
+} from "../services/entregaTurnoService"
+
+import { useEntregaTurnoStore } from "../store/entregaTurnoStore"
+
 const { TextArea } = Input
-const { Option } = Select
 
 export default function EntregaTurno() {
-  const [entregas, setEntregas] = useState([])
 
-  const [form, setForm] = useState({
-    operadorSaliente: "",
-    operadorEntrante: "",
-    fecha: "",
-    hora: "",
-    estadoGeneral: "",
-    incidentesActuales: "",
-    problemasPendientes: "",
-    escaladoA: "",
-    personalInformado: "",
-    observacionesCriticas: ""
-  })
+  const {
+    entrega,
+    entregas,
+    editandoId,
 
-  const guardarEntrega = () => {
-    if (
-      !form.operadorSaliente ||
-      !form.operadorEntrante ||
-      !form.fecha ||
-      !form.hora
-    ) {
-      alert("Completa los campos obligatorios")
+    actualizarCampo,
+    setEntregas,
+    resetEntrega,
+    setEditando
+
+  } = useEntregaTurnoStore()
+
+  // =========================
+  // OPERADORES
+  // =========================
+
+  const operadores = [
+    "Brandon Isaac Cruz Reyes",
+    "Erik Alexander Davila Flores"
+  ]
+
+  // =========================
+  // CARGAR ENTREGAS
+  // =========================
+
+  const cargarEntregas = async () => {
+
+    const { data, error } = await getEntregasTurno()
+
+    if (error) {
+      message.error("Error cargando entregas")
       return
     }
 
-    const nuevaEntrega = {
-      id: Date.now(),
-      ...form
-    }
-
-    setEntregas([nuevaEntrega, ...entregas])
-
-    setForm({
-      operadorSaliente: "",
-      operadorEntrante: "",
-      fecha: "",
-      hora: "",
-      estadoGeneral: "",
-      incidentesActuales: "",
-      problemasPendientes: "",
-      escaladoA: "",
-      personalInformado: "",
-      observacionesCriticas: ""
-    })
-
-    alert("Entrega de turno registrada correctamente")
+    setEntregas(data || [])
   }
 
+  useEffect(() => {
+    cargarEntregas()
+  }, [])
+
+  // =========================
+  // GUARDAR
+  // =========================
+
+  const guardar = async () => {
+
+    if (
+      !entrega.operadorSaliente ||
+      !entrega.operadorEntrante
+    ) {
+      message.warning("Completa los campos obligatorios")
+      return
+    }
+
+    const data = {
+      operador_saliente: entrega.operadorSaliente,
+      operador_entrante: entrega.operadorEntrante,
+
+      estado_general: entrega.estadoGeneral,
+
+      incidentes_actuales: entrega.incidentesActuales,
+      problemas_pendientes: entrega.problemasPendientes,
+      escalado_a: entrega.escaladoA,
+      personal_informado: entrega.personalInformado,
+      observaciones_criticas: entrega.observacionesCriticas
+    }
+
+    const res = editandoId
+      ? await actualizarEntregaTurno(editandoId, data)
+      : await guardarEntregaTurno(data)
+
+    const { error } = res
+
+    if (error) {
+      console.error(error)
+      message.error("Error guardando entrega")
+      return
+    }
+
+    message.success(
+      editandoId
+        ? "Entrega actualizada"
+        : "Entrega registrada"
+    )
+
+    resetEntrega()
+
+    cargarEntregas()
+  }
+
+  // =========================
+  // ELIMINAR
+  // =========================
+
+  const eliminar = async (id) => {
+
+    const { error } = await eliminarEntregaTurno(id)
+
+    if (error) {
+      message.error("Error eliminando")
+      return
+    }
+
+    message.success("Entrega eliminada")
+
+    cargarEntregas()
+  }
+
+  // =========================
+  // EDITAR
+  // =========================
+
+  const editar = (e) => {
+
+    setEditando(e.id, {
+      operadorSaliente: e.operador_saliente,
+      operadorEntrante: e.operador_entrante,
+
+      estadoGeneral: e.estado_general,
+
+      incidentesActuales: e.incidentes_actuales,
+      problemasPendientes: e.problemas_pendientes,
+      escaladoA: e.escalado_a,
+      personalInformado: e.personal_informado,
+      observacionesCriticas: e.observaciones_criticas
+    })
+  }
+
+  // =========================
+  // COLOR ESTADO
+  // =========================
+
+  const colorEstado = (estado) => {
+
+    if (estado === "Operativo") return "green"
+
+    if (estado === "Degradado") return "orange"
+
+    if (estado === "En Falla") return "red"
+
+    if (estado === "En Mantenimiento") return "blue"
+
+    return "default"
+  }
+
+  // =========================
+  // TABLA
+  // =========================
+
   const columnas = [
+
     {
       title: "Fecha",
       dataIndex: "fecha",
-      key: "fecha"
+      key: "fecha",
+      render: (v) =>
+        new Date(v).toLocaleDateString()
     },
+
     {
       title: "Hora",
-      dataIndex: "hora",
-      key: "hora"
+      dataIndex: "fecha",
+      key: "hora",
+      render: (v) =>
+        new Date(v).toLocaleTimeString()
     },
+
     {
       title: "Saliente",
-      dataIndex: "operadorSaliente",
-      key: "operadorSaliente"
+      dataIndex: "operador_saliente",
+      key: "operador_saliente"
     },
+
     {
       title: "Entrante",
-      dataIndex: "operadorEntrante",
-      key: "operadorEntrante"
+      dataIndex: "operador_entrante",
+      key: "operador_entrante"
     },
+
     {
-      title: "Estado General",
-      dataIndex: "estadoGeneral",
-      key: "estadoGeneral"
+      title: "Estado",
+      dataIndex: "estado_general",
+      key: "estado_general",
+
+      render: (v) => (
+        <Tag color={colorEstado(v)}>
+          {v}
+        </Tag>
+      )
+    },
+
+    {
+      title: "Acciones",
+      key: "acciones",
+
+      render: (_, record) => (
+        <div className="flex gap-2">
+
+          <Button
+            onClick={() => editar(record)}
+          >
+            Editar
+          </Button>
+
+          <Popconfirm
+            title="Eliminar entrega?"
+            onConfirm={() => eliminar(record.id)}
+          >
+            <Button danger>
+              Eliminar
+            </Button>
+          </Popconfirm>
+
+        </div>
+      )
     }
   ]
 
+  // =========================
+  // UI
+  // =========================
+
   return (
     <div>
+
       <h1 className="text-3xl font-bold mb-6">
         Entrega de Turno
       </h1>
@@ -100,146 +258,190 @@ export default function EntregaTurno() {
 
         <div className="grid md:grid-cols-2 gap-4">
 
-          <Input
+          {/* OPERADOR SALIENTE */}
+
+          <Select
             placeholder="Operador Saliente"
-            value={form.operadorSaliente}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                operadorSaliente: e.target.value
-              })
+
+            value={entrega.operadorSaliente}
+
+            onChange={(v) =>
+              actualizarCampo(
+                "operadorSaliente",
+                v
+              )
             }
+
+            options={operadores.map(op => ({
+              label: op,
+              value: op
+            }))}
           />
 
-          <Input
+          {/* OPERADOR ENTRANTE */}
+
+          <Select
             placeholder="Operador Entrante"
-            value={form.operadorEntrante}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                operadorEntrante: e.target.value
-              })
+
+            value={entrega.operadorEntrante}
+
+            onChange={(v) =>
+              actualizarCampo(
+                "operadorEntrante",
+                v
+              )
             }
+
+            options={operadores.map(op => ({
+              label: op,
+              value: op
+            }))}
           />
 
-          <Input
-            type="date"
-            value={form.fecha}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                fecha: e.target.value
-              })
-            }
-          />
-
-          <Input
-            type="time"
-            value={form.hora}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                hora: e.target.value
-              })
-            }
-          />
+          {/* ESTADO */}
 
           <Select
             placeholder="Estado General del DC"
-            value={form.estadoGeneral || undefined}
-            onChange={(value) =>
-              setForm({
-                ...form,
-                estadoGeneral: value
-              })
+
+            value={entrega.estadoGeneral}
+
+            onChange={(v) =>
+              actualizarCampo(
+                "estadoGeneral",
+                v
+              )
             }
-          >
-            <Option value="Operativo">
-              Operativo
-            </Option>
 
-            <Option value="Degradado">
-              Degradado
-            </Option>
+            options={[
+              {
+                value: "Operativo",
+                label: "🟢 Operativo"
+              },
 
-            <Option value="En Falla">
-              En Falla
-            </Option>
+              {
+                value: "Degradado",
+                label: "🟡 Degradado"
+              },
 
-            <Option value="En Mantenimiento">
-              En Mantenimiento
-            </Option>
-          </Select>
+              {
+                value: "En Falla",
+                label: "🔴 En Falla"
+              },
+
+              {
+                value: "En Mantenimiento",
+                label: "🔵 En Mantenimiento"
+              }
+            ]}
+          />
+
+          {/* ESCALADO */}
 
           <Input
             placeholder="Escalado a"
-            value={form.escaladoA}
+
+            value={entrega.escaladoA}
+
             onChange={(e) =>
-              setForm({
-                ...form,
-                escaladoA: e.target.value
-              })
+              actualizarCampo(
+                "escaladoA",
+                e.target.value
+              )
             }
           />
+
+          {/* PERSONAL INFORMADO */}
 
           <Input
             placeholder="Personal informado"
-            value={form.personalInformado}
+
+            value={entrega.personalInformado}
+
             onChange={(e) =>
-              setForm({
-                ...form,
-                personalInformado: e.target.value
-              })
+              actualizarCampo(
+                "personalInformado",
+                e.target.value
+              )
             }
           />
 
+          {/* INCIDENTES */}
+
           <TextArea
             rows={3}
+
             placeholder="Incidentes actuales"
-            value={form.incidentesActuales}
+
+            value={entrega.incidentesActuales}
+
             onChange={(e) =>
-              setForm({
-                ...form,
-                incidentesActuales: e.target.value
-              })
+              actualizarCampo(
+                "incidentesActuales",
+                e.target.value
+              )
             }
           />
 
+          {/* PROBLEMAS */}
+
           <TextArea
             rows={3}
+
             placeholder="Problemas pendientes"
-            value={form.problemasPendientes}
+
+            value={entrega.problemasPendientes}
+
             onChange={(e) =>
-              setForm({
-                ...form,
-                problemasPendientes: e.target.value
-              })
+              actualizarCampo(
+                "problemasPendientes",
+                e.target.value
+              )
             }
           />
 
+          {/* OBSERVACIONES */}
+
           <TextArea
             rows={3}
+
             placeholder="Observaciones críticas"
-            value={form.observacionesCriticas}
+
+            value={entrega.observacionesCriticas}
+
             onChange={(e) =>
-              setForm({
-                ...form,
-                observacionesCriticas: e.target.value
-              })
+              actualizarCampo(
+                "observacionesCriticas",
+                e.target.value
+              )
             }
           />
 
         </div>
 
-        <Button
-          type="primary"
-          className="mt-4"
-          onClick={guardarEntrega}
-        >
-          Registrar Entrega de Turno
-        </Button>
+        <div className="flex gap-3 mt-5">
+
+          <Button
+            type="primary"
+            onClick={guardar}
+          >
+            {
+              editandoId
+                ? "Actualizar Entrega"
+                : "Registrar Entrega"
+            }
+          </Button>
+
+          <Button
+            onClick={resetEntrega}
+          >
+            Limpiar
+          </Button>
+
+        </div>
 
       </Card>
+
+      {/* TABLA */}
 
       <Card className="rounded-2xl shadow-lg">
 
@@ -247,12 +449,14 @@ export default function EntregaTurno() {
           columns={columnas}
           dataSource={entregas}
           rowKey="id"
+
           pagination={{
             pageSize: 6
           }}
         />
 
       </Card>
+
     </div>
   )
 }
