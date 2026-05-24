@@ -138,7 +138,7 @@ export default function Bitacora() {
 // =========================
 try {
   const img = new Image()
-  img.src = "/logo03.png" // asegúrate que está en /public
+  img.src = "/logo03.png" 
 
   await new Promise((resolve) => {
     img.onload = resolve
@@ -189,7 +189,7 @@ try {
 
         columnStyles: {
           0: { cellWidth: 130 },
-          1: { cellWidth: 50, halign: "center" } // 🔥 ALINEADO
+          1: { cellWidth: 50, halign: "center" } 
         },
 
         didParseCell: (data) => {
