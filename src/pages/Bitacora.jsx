@@ -23,6 +23,12 @@ import { ESTADOS_REVISION } from "../utils/constants"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
+import {
+  addAlarma,
+  updateAlarma,
+  getAlarmaActivaByEquipo
+} from "../services/centroAlarmasService"
+
 export default function Bitacora() {
   const {
     bitacora,
@@ -35,6 +41,9 @@ export default function Bitacora() {
   const [modalAlertaOpen, setModalAlertaOpen] = useState(false)
   const [equipoAlerta, setEquipoAlerta] = useState(null)
   const [observacionAlerta, setObservacionAlerta] = useState("")
+  const [severidadAlerta, setSeveridadAlerta] = useState("Media")
+  const [estadoAlerta, setEstadoAlerta] = useState("Activa")
+
 
   const responsables = [
     "Brandon Isaac Cruz Reyes",
@@ -91,10 +100,10 @@ export default function Bitacora() {
       nuevos = actual.map((e) =>
         e.id === id
           ? {
-              ...e,
-              revisado: !e.revisado,
-              ...(e.revisado ? { alerta: false, observacion: "" } : {})
-            }
+            ...e,
+            revisado: !e.revisado,
+            ...(e.revisado ? { alerta: false, observacion: "" } : {})
+          }
           : e
       )
     } else {
@@ -116,10 +125,15 @@ export default function Bitacora() {
   // ALERTA
   // =========================
   const abrirAlerta = (equipo) => {
-    const actual = bitacora.equipos_extra?.find((e) => e.id === equipo.id)
+    const actual = bitacora.equipos_extra?.find(
+      (e) => e.id === equipo.id
+    )
 
     setEquipoAlerta(equipo)
     setObservacionAlerta(actual?.observacion || "")
+    setEstadoAlerta(actual?.estado || "Activa")
+    setSeveridadAlerta(actual?.severidad || "Media")
+
     setModalAlertaOpen(true)
   }
 
@@ -131,24 +145,28 @@ export default function Bitacora() {
 
     const nuevos = actual.some((e) => e.id === equipoAlerta.id)
       ? actual.map((e) =>
-          e.id === equipoAlerta.id
-            ? {
-                ...e,
-                revisado: true,
-                alerta: true,
-                observacion: obs
-              }
-            : e
-        )
-      : [
-          ...actual,
-          {
-            id: equipoAlerta.id,
+        e.id === equipoAlerta.id
+          ? {
+            ...e,
             revisado: true,
             alerta: true,
+            estado: estadoAlerta,
+            severidad: severidadAlerta,
             observacion: obs
           }
-        ]
+          : e
+      )
+      : [
+        ...actual,
+        {
+          id: equipoAlerta.id,
+          revisado: true,
+          alerta: true,
+          estado: estadoAlerta,
+          severidad: severidadAlerta,
+          observacion: obs
+        }
+      ]
 
     actualizarCampo("equipos_extra", nuevos)
     setModalAlertaOpen(false)
@@ -164,10 +182,12 @@ export default function Bitacora() {
     const nuevos = actual.map((e) =>
       e.id === equipoAlerta.id
         ? {
-            ...e,
-            alerta: false,
-            observacion: ""
-          }
+          ...e,
+          alerta: false,
+          estado: null,
+          severidad: null,
+          observacion: ""
+        }
         : e
     )
 
@@ -197,10 +217,151 @@ export default function Bitacora() {
         equipos_extra: bitacora.equipos_extra || []
       }
 
+      let resultadoBitacora
+
       if (editandoId) {
-        await actualizarBitacora(editandoId, data)
+        resultadoBitacora = await actualizarBitacora(
+          editandoId,
+          data
+        )
       } else {
-        await guardarBitacora(data)
+        resultadoBitacora = await guardarBitacora(data)
+      }
+
+      // =========================
+      // CENTRO DE ALARMAS
+      // =========================
+
+      const incidencias = (
+        data.equipos_extra || []
+      ).filter((e) => e.alerta)
+
+      for (const incidencia of incidencias) {
+
+        const equipo = equipos.find(
+          (eq) => eq.id === incidencia.id
+        )
+
+        if (!equipo) continue
+
+        const { data: alarmaActiva } =
+          await getAlarmaActivaByEquipo(
+            equipo.id
+          )
+
+        // =====================
+        // SI EXISTE
+        // =====================
+
+        if (
+          alarmaActiva &&
+          alarmaActiva.length > 0
+        ) {
+
+          const alarma = alarmaActiva[0]
+
+          const comentarioAnterior =
+            alarma.comentario_tecnico || ""
+
+          const nuevoComentario = `
+[${new Date().toLocaleString()}]
+
+${incidencia.observacion}
+
+------------------------
+${comentarioAnterior}
+`
+
+          await updateAlarma(
+            alarma.id,
+            {
+              estado: incidencia.estado,
+              severidad: incidencia.severidad,
+              comentario_tecnico:
+                nuevoComentario
+            }
+          )
+
+        } else {
+
+          // =====================
+          // CREAR
+          // =====================
+
+          await addAlarma({
+            equipo: equipo.nombre_equipo,
+
+            equipo_id: equipo.id,
+
+            categoria: equipo.categoria,
+
+            tipo_alarma:
+              "Incidencia Operativa",
+
+            severidad:
+              incidencia.severidad,
+
+            estado:
+              incidencia.estado,
+
+            responsable:
+              data.responsable,
+
+            comentario_tecnico:
+              incidencia.observacion,
+
+            fecha:
+              new Date()
+                .toISOString()
+                .split("T")[0],
+
+            bitacora_id:
+              resultadoBitacora?.data?.[0]?.id ||
+              null,
+
+            activa: true
+          })
+        }
+      }
+
+      // =========================
+      // CREAR ALARMAS
+      // =========================
+
+      const alarmas = (data.equipos_extra || []).filter(
+        (e) => e.alerta === true
+      )
+
+      for (const alarma of alarmas) {
+
+        const equipo = equipos.find(
+          (eq) => eq.id === alarma.id
+        )
+
+        if (!equipo) continue
+
+        await crearAlarmaDesdeBitacora({
+          equipo: equipo.nombre_equipo,
+          equipo_id: equipo.id,
+          categoria: equipo.categoria,
+
+          tipo_alarma: "Incidencia Operativa",
+
+          severidad: alarma.severidad,
+
+          estado: alarma.estado,
+
+          responsable: data.responsable,
+
+          comentario_tecnico: alarma.observacion,
+
+          fecha: new Date()
+            .toISOString()
+            .split("T")[0],
+
+          bitacora_id:
+            bitacoraGuardada?.data?.[0]?.id || null
+        })
       }
 
       message.success("Bitácora guardada")
@@ -490,11 +651,48 @@ export default function Bitacora() {
           Si detectaste un problema en este equipo, escribe la observación aquí.
         </p>
 
+        <Select
+          value={estadoAlerta}
+          style={{ width: "100%", marginBottom: 12 }}
+          onChange={setEstadoAlerta}
+          options={[
+            {
+              label: "Activa",
+              value: "Activa"
+            },
+            {
+              label: "En monitoreo",
+              value: "En monitoreo"
+            }
+          ]}
+        />
+        <Select
+          value={severidadAlerta}
+          style={{ width: "100%", marginBottom: 12 }}
+          onChange={setSeveridadAlerta}
+          options={[
+            {
+              label: "Baja",
+              value: "Baja"
+            },
+            {
+              label: "Media",
+              value: "Media"
+            },
+            {
+              label: "Crítica",
+              value: "Crítica"
+            }
+          ]}
+        />
+
         <Input.TextArea
           rows={4}
           placeholder="Describe la incidencia..."
           value={observacionAlerta}
-          onChange={(e) => setObservacionAlerta(e.target.value)}
+          onChange={(e) =>
+            setObservacionAlerta(e.target.value)
+          }
         />
       </Modal>
     </div>

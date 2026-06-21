@@ -1,260 +1,361 @@
-// src/pages/CentroAlarmas.jsx
+import React, { useEffect } from "react"
 
-import React, { useState } from "react"
 import {
   Card,
-  Input,
-  Button,
   Table,
   Select,
-  Tag
+  Tag,
+  Button,
+  message
 } from "antd"
 
-const { TextArea } = Input
-const { Option } = Select
+import {
+  getAlarmas,
+  updateAlarma,
+  resolverAlarma
+} from "../services/centroAlarmasService"
+
+import { useCentroAlarmasStore } from "../store/centroAlarmasStore"
+
+import AlarmasCharts from "../components/Alarmas/AlarmasCharts"
 
 export default function CentroAlarmas() {
-  const [alarmas, setAlarmas] = useState([])
 
-  const [form, setForm] = useState({
-    equipo: "",
-    tipoAlarma: "",
-    severidad: "",
-    estado: "",
-    responsable: "",
-    escaladoA: "",
-    comentarioTecnico: "",
-    fecha: ""
-  })
+  const {
+    alarmas,
+    filtro,
+    setAlarmas,
+    setFiltro
+  } = useCentroAlarmasStore()
 
-  const guardarAlarma = () => {
-    if (
-      !form.equipo ||
-      !form.tipoAlarma ||
-      !form.severidad ||
-      !form.estado
-    ) {
-      alert("Completa los campos obligatorios")
+  const cargar = async () => {
+
+    const { data, error } =
+      await getAlarmas()
+
+    if (error) {
+      message.error("Error cargando alarmas")
       return
     }
 
-    const nuevaAlarma = {
-      id: Date.now(),
-      ...form
+    setAlarmas(data || [])
+  }
+
+  useEffect(() => {
+    cargar()
+  }, [])
+
+  const cambiarEstado = async (
+    alarma,
+    nuevoEstado
+  ) => {
+
+    const { error } =
+      await updateAlarma(
+        alarma.id,
+        {
+          estado: nuevoEstado
+        }
+      )
+
+    if (error) {
+      message.error("Error actualizando")
+      return
     }
 
-    setAlarmas([nuevaAlarma, ...alarmas])
-
-    setForm({
-      equipo: "",
-      tipoAlarma: "",
-      severidad: "",
-      estado: "",
-      responsable: "",
-      escaladoA: "",
-      comentarioTecnico: "",
-      fecha: ""
-    })
-
-    alert("Alarma registrada correctamente")
+    cargar()
   }
 
-  const renderEstado = (estado) => {
-    let color = "blue"
+  const resolver = async (id) => {
 
-    if (estado === "Activa") color = "red"
-    if (estado === "Resuelta") color = "green"
-    if (estado === "Pendiente") color = "orange"
-    if (estado === "Monitoreo") color = "blue"
+    const { error } =
+      await resolverAlarma(id)
 
-    return <Tag color={color}>{estado}</Tag>
+    if (error) {
+      message.error("Error resolviendo")
+      return
+    }
+
+    message.success("Alarma resuelta")
+
+    cargar()
   }
+
+  const colorEstado = (estado) => {
+
+    if (estado === "Activa")
+      return "red"
+
+    if (estado === "En monitoreo")
+      return "gold"
+
+    if (estado === "Resuelta")
+      return "green"
+
+    return "default"
+  }
+
+  const colorSeveridad = (s) => {
+
+    if (s === "Crítica")
+      return "red"
+
+    if (s === "Media")
+      return "blue"
+
+    if (s === "Baja")
+      return "green"
+
+    return "default"
+  }
+
+  const formatDuracion = (
+    minutos
+  ) => {
+
+    if (!minutos) return "-"
+
+    const dias =
+      Math.floor(minutos / 1440)
+
+    const horas =
+      Math.floor(
+        (minutos % 1440) / 60
+      )
+
+    const mins =
+      minutos % 60
+
+    return `${dias}d ${horas}h ${mins}m`
+  }
+
+  const filtradas =
+    filtro === "Todas"
+      ? alarmas
+      : alarmas.filter(
+          (a) => a.estado === filtro
+        )
+
+  const activas =
+    alarmas.filter(
+      (a) => a.estado === "Activa"
+    ).length
+
+  const monitoreo =
+    alarmas.filter(
+      (a) => a.estado === "En monitoreo"
+    ).length
+
+  const resueltas =
+    alarmas.filter(
+      (a) => a.estado === "Resuelta"
+    ).length
+
+  const criticas =
+    alarmas.filter(
+      (a) => a.severidad === "Crítica"
+    ).length
+
+  const medias =
+    alarmas.filter(
+      (a) => a.severidad === "Media"
+    ).length
+
+  const bajas =
+    alarmas.filter(
+      (a) => a.severidad === "Baja"
+    ).length
 
   const columnas = [
+
     {
       title: "Equipo",
-      dataIndex: "equipo",
-      key: "equipo"
+      dataIndex: "equipo"
     },
+
     {
-      title: "Tipo",
-      dataIndex: "tipoAlarma",
-      key: "tipoAlarma"
+      title: "Categoría",
+      dataIndex: "categoria"
     },
+
     {
       title: "Severidad",
       dataIndex: "severidad",
-      key: "severidad"
+
+      render: (v) => (
+        <Tag color={colorSeveridad(v)}>
+          {v}
+        </Tag>
+      )
     },
+
     {
       title: "Estado",
       dataIndex: "estado",
-      key: "estado",
-      render: renderEstado
+
+      render: (v) => (
+        <Tag color={colorEstado(v)}>
+          {v}
+        </Tag>
+      )
     },
+
     {
       title: "Responsable",
-      dataIndex: "responsable",
-      key: "responsable"
+      dataIndex: "responsable"
     },
+
     {
-      title: "Escalado a",
-      dataIndex: "escaladoA",
-      key: "escaladoA"
+      title: "Inicio",
+
+      dataIndex: "fecha_inicio",
+
+      render: (v) =>
+        v
+          ? new Date(v)
+              .toLocaleString()
+          : "-"
+    },
+
+    {
+      title: "Fin",
+
+      dataIndex:
+        "fecha_resolucion",
+
+      render: (v) =>
+        v
+          ? new Date(v)
+              .toLocaleString()
+          : "-"
+    },
+
+    {
+      title: "Duración",
+
+      dataIndex:
+        "duracion_minutos",
+
+      render: formatDuracion
+    },
+
+    {
+      title: "Acciones",
+
+      render: (_, record) => (
+
+        <div className="flex gap-2">
+
+          {
+            record.estado !==
+              "Resuelta" && (
+              <Select
+                size="small"
+                style={{
+                  width: 140
+                }}
+                value={record.estado}
+                onChange={(v) =>
+                  cambiarEstado(
+                    record,
+                    v
+                  )
+                }
+                options={[
+                  {
+                    value:
+                      "Activa",
+                    label:
+                      "Activa"
+                  },
+                  {
+                    value:
+                      "En monitoreo",
+                    label:
+                      "En monitoreo"
+                  }
+                ]}
+              />
+            )
+          }
+
+          {
+            record.estado !==
+              "Resuelta" && (
+              <Button
+                type="primary"
+                size="small"
+                onClick={() =>
+                  resolver(
+                    record.id
+                  )
+                }
+              >
+                Resolver
+              </Button>
+            )
+          }
+
+        </div>
+      )
     }
   ]
 
   return (
     <div>
+
       <h1 className="text-3xl font-bold mb-6">
         Centro de Alarmas
       </h1>
 
-      <Card className="rounded-2xl shadow-lg mb-6">
+      <AlarmasCharts
+        activas={activas}
+        monitoreo={monitoreo}
+        resueltas={resueltas}
+        criticas={criticas}
+        medias={medias}
+        bajas={bajas}
+      />
 
-        <div className="grid md:grid-cols-2 gap-4">
+      <Card className="mt-6">
 
-          <Input
-            placeholder="Equipo afectado"
-            value={form.equipo}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                equipo: e.target.value
-              })
+        <Select
+          style={{
+            width: 250,
+            marginBottom: 16
+          }}
+          value={filtro}
+          onChange={setFiltro}
+          options={[
+            {
+              value: "Todas",
+              label: "Todas"
+            },
+            {
+              value: "Activa",
+              label: "Activas"
+            },
+            {
+              value: "En monitoreo",
+              label:
+                "En monitoreo"
+            },
+            {
+              value: "Resuelta",
+              label:
+                "Resueltas"
             }
-          />
-
-          <Input
-            placeholder="Tipo de alarma"
-            value={form.tipoAlarma}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                tipoAlarma: e.target.value
-              })
-            }
-          />
-
-          <Select
-            placeholder="Severidad"
-            value={form.severidad || undefined}
-            onChange={(value) =>
-              setForm({
-                ...form,
-                severidad: value
-              })
-            }
-          >
-            <Option value="Crítica">
-              Crítica
-            </Option>
-
-            <Option value="Media">
-              Media
-            </Option>
-
-            <Option value="Baja">
-              Baja
-            </Option>
-          </Select>
-
-          <Select
-            placeholder="Estado"
-            value={form.estado || undefined}
-            onChange={(value) =>
-              setForm({
-                ...form,
-                estado: value
-              })
-            }
-          >
-            <Option value="Activa">
-              Activa
-            </Option>
-
-            <Option value="Resuelta">
-              Resuelta
-            </Option>
-
-            <Option value="Pendiente">
-              Reportada sin revisión
-            </Option>
-
-            <Option value="Monitoreo">
-              En monitoreo
-            </Option>
-          </Select>
-
-          <Input
-            placeholder="Responsable"
-            value={form.responsable}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                responsable: e.target.value
-              })
-            }
-          />
-
-          <Input
-            placeholder="Escalado a"
-            value={form.escaladoA}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                escaladoA: e.target.value
-              })
-            }
-          />
-
-          <Input
-            type="date"
-            value={form.fecha}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                fecha: e.target.value
-              })
-            }
-          />
-
-          <TextArea
-            rows={4}
-            placeholder="Comentario técnico"
-            value={form.comentarioTecnico}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                comentarioTecnico: e.target.value
-              })
-            }
-          />
-
-        </div>
-
-        <Button
-          type="primary"
-          className="mt-4"
-          onClick={guardarAlarma}
-        >
-          Registrar Alarma
-        </Button>
-
-      </Card>
-
-      <Card className="rounded-2xl shadow-lg">
+          ]}
+        />
 
         <Table
-          columns={columnas}
-          dataSource={alarmas}
           rowKey="id"
-          pagination={{
-            pageSize: 8
-          }}
+          columns={columnas}
+          dataSource={filtradas}
         />
 
       </Card>
+
     </div>
   )
 }
