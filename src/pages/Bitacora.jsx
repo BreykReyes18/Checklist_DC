@@ -324,46 +324,6 @@ ${comentarioAnterior}
         }
       }
 
-      // =========================
-      // CREAR ALARMAS
-      // =========================
-
-      const alarmas = (data.equipos_extra || []).filter(
-        (e) => e.alerta === true
-      )
-
-      for (const alarma of alarmas) {
-
-        const equipo = equipos.find(
-          (eq) => eq.id === alarma.id
-        )
-
-        if (!equipo) continue
-
-        await crearAlarmaDesdeBitacora({
-          equipo: equipo.nombre_equipo,
-          equipo_id: equipo.id,
-          categoria: equipo.categoria,
-
-          tipo_alarma: "Incidencia Operativa",
-
-          severidad: alarma.severidad,
-
-          estado: alarma.estado,
-
-          responsable: data.responsable,
-
-          comentario_tecnico: alarma.observacion,
-
-          fecha: new Date()
-            .toISOString()
-            .split("T")[0],
-
-          bitacora_id:
-            bitacoraGuardada?.data?.[0]?.id || null
-        })
-      }
-
       message.success("Bitácora guardada")
       resetBitacora()
     } catch (error) {
