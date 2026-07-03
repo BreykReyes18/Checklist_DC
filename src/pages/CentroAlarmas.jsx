@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 
 import {
   Card,
@@ -7,8 +7,22 @@ import {
   Tag,
   Button,
   message,
-  Space
+  Space,
+  Row,
+  Col,
+  Statistic,
+  Divider,
+  Tooltip
 } from "antd"
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Legend
+} from "recharts"
 
 import {
   getAlarmas,
@@ -20,8 +34,19 @@ import { useCentroAlarmasStore } from "../store/centroAlarmasStore"
 
 import AlarmasCharts from "../components/Alarmas/AlarmasCharts"
 
-export default function CentroAlarmas() {
+const ESTADO_COLORS = {
+  Activa: "#ef4444",
+  "En monitoreo": "#facc15",
+  Resuelta: "#22c55e"
+}
 
+const SEVERIDAD_COLORS = {
+  Crítica: "#ef4444",
+  Media: "#38bdf8",
+  Baja: "#22c55e"
+}
+
+export default function CentroAlarmas() {
   const {
     alarmas,
     filtro,
@@ -29,309 +54,480 @@ export default function CentroAlarmas() {
     setFiltro
   } = useCentroAlarmasStore()
 
-  const cargar = async () => {
+  const [loading, setLoading] = useState(false)
+  const [fechaInicio, setFechaInicio] = useState("")
+  const [fechaFin, setFechaFin] = useState("")
 
-    const { data, error } =
-      await getAlarmas()
+  const cargar = async () => {
+    setLoading(true)
+    const { data, error } = await getAlarmas()
 
     if (error) {
+      console.error(error)
       message.error("Error cargando alarmas")
+      setLoading(false)
       return
     }
 
     setAlarmas(data || [])
+    setLoading(false)
   }
 
   useEffect(() => {
     cargar()
   }, [])
 
-  const cambiarEstado = async (
-    alarma,
-    nuevoEstado
-  ) => {
+  const formatearDuracion = (minutos) => {
+    if (minutos === null || minutos === undefined) return "-"
 
-    const { error } =
-      await updateAlarma(
-        alarma.id,
-        {
-          estado: nuevoEstado
-        }
-      )
+    const total = Number(minutos)
+    if (Number.isNaN(total) || total < 0) return "-"
 
-    if (error) {
-      message.error("Error actualizando")
-      return
-    }
-
-    cargar()
-  }
-
-  const resolver = async (id) => {
-
-    const { error } =
-      await resolverAlarma(id)
-
-    if (error) {
-      message.error("Error resolviendo")
-      return
-    }
-
-    message.success("Alarma resuelta")
-
-    cargar()
-  }
-
-  const colorEstado = (estado) => {
-
-    if (estado === "Activa")
-      return "red"
-
-    if (estado === "En monitoreo")
-      return "gold"
-
-    if (estado === "Resuelta")
-      return "green"
-
-    return "default"
-  }
-
-  const colorSeveridad = (s) => {
-
-    if (s === "Crítica")
-      return "red"
-
-    if (s === "Media")
-      return "blue"
-
-    if (s === "Baja")
-      return "green"
-
-    return "default"
-  }
-
-  const formatDuracion = (
-    minutos
-  ) => {
-
-    if (!minutos) return "-"
-
-    const dias =
-      Math.floor(minutos / 1440)
-
-    const horas =
-      Math.floor(
-        (minutos % 1440) / 60
-      )
-
-    const mins =
-      minutos % 60
+    const dias = Math.floor(total / 1440)
+    const horas = Math.floor((total % 1440) / 60)
+    const mins = total % 60
 
     return `${dias}d ${horas}h ${mins}m`
   }
 
-  const filtradas =
+  const formatearFechaHora = (valor) => {
+    if (!valor) return "-"
+    const d = new Date(valor)
+    if (Number.isNaN(d.getTime())) return "-"
+    return d.toLocaleString()
+  }
+
+  const cambiarEstado = async (record, nuevoEstado) => {
+    if (!record || record.estado === nuevoEstado) return
+
+    try {
+      setLoading(true)
+
+      if (nuevoEstado === "Resuelta") {
+        const { error } = await resolverAlarma(record.id)
+
+        if (error) {
+          console.error(error)
+          message.error("Error resolviendo alarma")
+          setLoading(false)
+          return
+        }
+
+        message.success("Alarma resuelta")
+        await cargar()
+        return
+      }
+
+      if (record.estado === "Resuelta" && nuevoEstado !== "Resuelta") {
+        const { error } = await updateAlarma(record.id, {
+          estado: nuevoEstado,
+          activa: true,
+          fecha_inicio: new Date(),
+          fecha_resolucion: null,
+          duracion_minutos: null
+        })
+
+        if (error) {
+          console.error(error)
+          message.error("Error actualizando alarma")
+          setLoading(false)
+          return
+        }
+
+        message.success("Alarma reabierta")
+        await cargar()
+        return
+      }
+
+      const { error } = await updateAlarma(record.id, {
+        estado: nuevoEstado
+      })
+
+      if (error) {
+        console.error(error)
+        message.error("Error actualizando alarma")
+        setLoading(false)
+        return
+      }
+
+      message.success("Estado actualizado")
+      await cargar()
+    } catch (error) {
+      console.error(error)
+      message.error("Error actualizando alarma")
+      setLoading(false)
+    }
+  }
+
+  const resolver = async (id) => {
+    try {
+      setLoading(true)
+
+      const { error } = await resolverAlarma(id)
+
+      if (error) {
+        console.error(error)
+        message.error("Error resolviendo alarma")
+        setLoading(false)
+        return
+      }
+
+      message.success("Alarma resuelta")
+      await cargar()
+    } catch (error) {
+      console.error(error)
+      message.error("Error resolviendo alarma")
+      setLoading(false)
+    }
+  }
+
+  const colorEstado = (estado) => {
+    if (estado === "Activa") return "red"
+    if (estado === "En monitoreo") return "gold"
+    if (estado === "Resuelta") return "green"
+    return "default"
+  }
+
+  const colorSeveridad = (s) => {
+    if (s === "Crítica") return "red"
+    if (s === "Media") return "blue"
+    if (s === "Baja") return "green"
+    return "default"
+  }
+
+  const aplicarFiltroFechas = (lista) => {
+    let data = [...lista]
+
+    if (fechaInicio || fechaFin) {
+      data = data.filter((a) => {
+        if (!a.fecha_inicio) return false
+
+        const fecha = new Date(a.fecha_inicio).getTime()
+        const inicio = fechaInicio
+          ? new Date(`${fechaInicio}T00:00:00`).getTime()
+          : null
+        const fin = fechaFin
+          ? new Date(`${fechaFin}T23:59:59.999`).getTime()
+          : null
+
+        if (inicio !== null && fecha < inicio) return false
+        if (fin !== null && fecha > fin) return false
+
+        return true
+      })
+    }
+
+    return data
+  }
+
+  const filtradasBase =
     filtro === "Todas"
       ? alarmas
-      : alarmas.filter(
-          (a) => a.estado === filtro
-        )
+      : alarmas.filter((a) => a.estado === filtro)
+
+  const filtradas = aplicarFiltroFechas(filtradasBase)
 
   const activas =
-    alarmas.filter(
-      (a) => a.estado === "Activa"
-    ).length
+    filtradas.filter((a) => a.estado === "Activa").length
 
   const monitoreo =
-    alarmas.filter(
-      (a) => a.estado === "En monitoreo"
-    ).length
+    filtradas.filter((a) => a.estado === "En monitoreo").length
 
   const resueltas =
-    alarmas.filter(
-      (a) => a.estado === "Resuelta"
-    ).length
+    filtradas.filter((a) => a.estado === "Resuelta").length
 
   const criticas =
-    alarmas.filter(
-      (a) => a.severidad === "Crítica"
-    ).length
+    filtradas.filter((a) => a.severidad === "Crítica").length
 
   const medias =
-    alarmas.filter(
-      (a) => a.severidad === "Media"
-    ).length
+    filtradas.filter((a) => a.severidad === "Media").length
 
   const bajas =
-    alarmas.filter(
-      (a) => a.severidad === "Baja"
-    ).length
+    filtradas.filter((a) => a.severidad === "Baja").length
+
+  const estadoChartData = [
+    { name: "Activas", value: activas },
+    { name: "En monitoreo", value: monitoreo },
+    { name: "Resueltas", value: resueltas }
+  ]
+
+  const severidadChartData = [
+    { name: "Crítica", value: criticas },
+    { name: "Media", value: medias },
+    { name: "Baja", value: bajas }
+  ]
 
   const columnas = [
-
     {
       title: "Equipo",
       dataIndex: "equipo"
     },
-
     {
       title: "Categoría",
       dataIndex: "categoria"
     },
-
     {
       title: "Severidad",
       dataIndex: "severidad",
-
       render: (v) => (
         <Tag color={colorSeveridad(v)}>
           {v}
         </Tag>
       )
     },
-
     {
       title: "Estado",
       dataIndex: "estado",
-
       render: (v) => (
         <Tag color={colorEstado(v)}>
           {v}
         </Tag>
       )
     },
-
     {
       title: "Responsable",
       dataIndex: "responsable"
     },
-
     {
       title: "Inicio",
-
       dataIndex: "fecha_inicio",
-
       render: (v) =>
         v
-          ? new Date(v)
-              .toLocaleString()
+          ? new Date(v).toLocaleString()
           : "-"
     },
-
     {
       title: "Fin",
-
-      dataIndex:
-        "fecha_resolucion",
-
+      dataIndex: "fecha_resolucion",
       render: (v) =>
         v
-          ? new Date(v)
-              .toLocaleString()
+          ? new Date(v).toLocaleString()
           : "-"
     },
-
     {
       title: "Duración",
-
-      dataIndex:
-        "duracion_minutos",
-
-      render: formatDuracion
+      dataIndex: "duracion_minutos",
+      render: formatearDuracion
     },
-
     {
-  title: "Acciones",
-  key: "acciones",
-  width: 220,
-  render: (_, record) => (
-    <Space direction="vertical" size={8} style={{ width: "100%" }}>
-      {record.estado !== "Resuelta" && (
-        <Select
-          size="small"
-          style={{ width: "100%" }}
-          value={record.estado}
-          onChange={(v) => cambiarEstado(record, v)}
-          options={[
-            { value: "Activa", label: "Activa" },
-            { value: "En monitoreo", label: "En monitoreo" }
-          ]}
-        />
-      )}
+      title: "Acciones",
+      key: "acciones",
+      width: 220,
+      render: (_, record) => (
+        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+          <Select
+            size="small"
+            style={{ width: "100%" }}
+            value={record.estado}
+            onChange={(v) => cambiarEstado(record, v)}
+            options={[
+              { value: "Activa", label: "Activa" },
+              { value: "En monitoreo", label: "En monitoreo" },
+              { value: "Resuelta", label: "Resuelta" }
+            ]}
+          />
 
-      {record.estado !== "Resuelta" && (
-        <Button
-          type="primary"
-          size="small"
-          block
-          onClick={() => resolver(record.id)}
-        >
-          Resolver
-        </Button>
-      )}
-    </Space>
-  )
-}
+          {record.estado !== "Resuelta" && (
+            <Tooltip title="Marcar como resuelta">
+              <Button
+                type="primary"
+                size="small"
+                block
+                onClick={() => resolver(record.id)}
+              >
+                Resolver
+              </Button>
+            </Tooltip>
+          )}
+        </Space>
+      )
+    }
   ]
 
   return (
     <div>
-
       <h1 className="text-3xl font-bold mb-6">
         Centro de Alarmas
       </h1>
 
-      <AlarmasCharts
-        activas={activas}
-        monitoreo={monitoreo}
-        resueltas={resueltas}
-        criticas={criticas}
-        medias={medias}
-        bajas={bajas}
-      />
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="Activas"
+              value={activas}
+              valueStyle={{ color: ESTADO_COLORS.Activa }}
+            />
+          </Card>
+        </Col>
 
-      <Card className="mt-6">
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="En monitoreo"
+              value={monitoreo}
+              valueStyle={{ color: ESTADO_COLORS["En monitoreo"] }}
+            />
+          </Card>
+        </Col>
 
-        <Select
-          style={{
-            width: 250,
-            marginBottom: 16
-          }}
-          value={filtro}
-          onChange={setFiltro}
-          options={[
-            {
-              value: "Todas",
-              label: "Todas"
-            },
-            {
-              value: "Activa",
-              label: "Activas"
-            },
-            {
-              value: "En monitoreo",
-              label:
-                "En monitoreo"
-            },
-            {
-              value: "Resuelta",
-              label:
-                "Resueltas"
-            }
-          ]}
-        />
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="Resueltas"
+              value={resueltas}
+              valueStyle={{ color: ESTADO_COLORS.Resuelta }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
-        <Table
-          rowKey="id"
-          columns={columnas}
-          dataSource={filtradas}
-          scroll={{
-            x: 1000
-          }}
-        />
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} lg={12}>
+          <Card title="Estado de Alarmas" className="h-full">
+            <div style={{ width: "100%", height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={estadoChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={70}
+                    outerRadius={105}
+                    paddingAngle={3}
+                    cx="50%"
+                    cy="50%"
+                  >
+                    {estadoChartData.map((entry, index) => {
+                      const color =
+                        index === 0
+                          ? ESTADO_COLORS.Activa
+                          : index === 1
+                            ? ESTADO_COLORS["En monitoreo"]
+                            : ESTADO_COLORS.Resuelta
 
+                      return (
+                        <Cell key={`estado-${index}`} fill={color} />
+                      )
+                    })}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12}>
+          <Card title="Severidad" className="h-full">
+            <div style={{ width: "100%", height: 320 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={severidadChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={70}
+                    outerRadius={105}
+                    paddingAngle={3}
+                    cx="50%"
+                    cy="50%"
+                  >
+                    {severidadChartData.map((entry, index) => {
+                      const color =
+                        index === 0
+                          ? SEVERIDAD_COLORS.Crítica
+                          : index === 1
+                            ? SEVERIDAD_COLORS.Media
+                            : SEVERIDAD_COLORS.Baja
+
+                      return (
+                        <Cell key={`sev-${index}`} fill={color} />
+                      )
+                    })}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Card className="rounded-2xl shadow-lg">
+        <Space
+          direction="vertical"
+          size={16}
+          style={{ width: "100%" }}
+        >
+          <Space wrap>
+            <Select
+              style={{ width: 260 }}
+              value={filtro}
+              onChange={setFiltro}
+              options={[
+                { value: "Todas", label: "Todas" },
+                { value: "Activa", label: "Activas" },
+                { value: "En monitoreo", label: "En monitoreo" },
+                { value: "Resuelta", label: "Resueltas" }
+              ]}
+            />
+
+            <input
+              type="date"
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              style={{
+                height: 32,
+                padding: "0 12px",
+                border: "1px solid #d9d9d9",
+                borderRadius: 6
+              }}
+            />
+
+            <input
+              type="date"
+              value={fechaFin}
+              onChange={(e) => setFechaFin(e.target.value)}
+              style={{
+                height: 32,
+                padding: "0 12px",
+                border: "1px solid #d9d9d9",
+                borderRadius: 6
+              }}
+            />
+
+            <Button
+              onClick={() => {
+                setFechaInicio("")
+                setFechaFin("")
+              }}
+            >
+              Limpiar fechas
+            </Button>
+
+            <Button onClick={cargar} loading={loading}>
+              Refrescar
+            </Button>
+          </Space>
+
+          <Divider style={{ margin: "8px 0" }} />
+
+          <Table
+            rowKey="id"
+            columns={columnas}
+            dataSource={filtradas}
+            loading={loading}
+            scroll={{ x: 1280 }}
+            pagination={{
+              pageSize: 8,
+              showSizeChanger: false
+            }}
+          />
+        </Space>
       </Card>
-
     </div>
   )
 }
