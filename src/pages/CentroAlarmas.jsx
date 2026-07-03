@@ -6,7 +6,8 @@ import {
   Select,
   Tag,
   Button,
-  message
+  message,
+  Space
 } from "antd"
 
 import {
@@ -240,65 +241,37 @@ export default function CentroAlarmas() {
     },
 
     {
-      title: "Acciones",
+  title: "Acciones",
+  key: "acciones",
+  width: 220,
+  render: (_, record) => (
+    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      {record.estado !== "Resuelta" && (
+        <Select
+          size="small"
+          style={{ width: "100%" }}
+          value={record.estado}
+          onChange={(v) => cambiarEstado(record, v)}
+          options={[
+            { value: "Activa", label: "Activa" },
+            { value: "En monitoreo", label: "En monitoreo" }
+          ]}
+        />
+      )}
 
-      render: (_, record) => (
-
-        <div className="flex gap-2">
-
-          {
-            record.estado !==
-              "Resuelta" && (
-              <Select
-                size="small"
-                style={{
-                  width: 140
-                }}
-                value={record.estado}
-                onChange={(v) =>
-                  cambiarEstado(
-                    record,
-                    v
-                  )
-                }
-                options={[
-                  {
-                    value:
-                      "Activa",
-                    label:
-                      "Activa"
-                  },
-                  {
-                    value:
-                      "En monitoreo",
-                    label:
-                      "En monitoreo"
-                  }
-                ]}
-              />
-            )
-          }
-
-          {
-            record.estado !==
-              "Resuelta" && (
-              <Button
-                type="primary"
-                size="small"
-                onClick={() =>
-                  resolver(
-                    record.id
-                  )
-                }
-              >
-                Resolver
-              </Button>
-            )
-          }
-
-        </div>
-      )
-    }
+      {record.estado !== "Resuelta" && (
+        <Button
+          type="primary"
+          size="small"
+          block
+          onClick={() => resolver(record.id)}
+        >
+          Resolver
+        </Button>
+      )}
+    </Space>
+  )
+}
   ]
 
   return (
@@ -352,6 +325,9 @@ export default function CentroAlarmas() {
           rowKey="id"
           columns={columnas}
           dataSource={filtradas}
+          scroll={{
+            x: 1000
+          }}
         />
 
       </Card>
