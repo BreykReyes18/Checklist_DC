@@ -16,7 +16,8 @@ import {
   ClockCircleOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  UserOutlined
 } from "@ant-design/icons"
 
 import { useAuthStore } from "../../store/authStore"
@@ -49,7 +50,16 @@ export default function Layout() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout, esAdmin } = useAuthStore()
+  const { logout, esAdmin, perfil, user } = useAuthStore()
+
+  const nombreSesion = perfil?.nombre || user?.email || "Usuario"
+  const rolSesion = perfil?.rol || ""
+  const iniciales = nombreSesion
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join("")
   const navVisible = NAV.filter((n) => n.key !== "/usuarios" || esAdmin)
 
   const actual =
@@ -115,6 +125,13 @@ export default function Layout() {
         </nav>
 
         <div className="sidebar-foot">
+          <div className="sesion-card" title={`${nombreSesion} · ${rolSesion}`}>
+            <div className="avatar">{iniciales}</div>
+            <div className="sesion-datos">
+              <b>{nombreSesion}</b>
+              <span>{rolSesion}</span>
+            </div>
+          </div>
           <button
             type="button"
             className="foot-btn logout"
@@ -147,6 +164,11 @@ export default function Layout() {
             <div className="turno-chip">
               <ClockCircleOutlined />
               Turno activo · <b>{getOperadorTurno(now)}</b>
+            </div>
+            <div className="turno-chip sesion-chip">
+              <UserOutlined />
+              Sesión · <b>{nombreSesion}</b>
+              {rolSesion && <span className="rol-tag">{rolSesion}</span>}
             </div>
             <div className="clock">{formatClock(now)}</div>
           </div>

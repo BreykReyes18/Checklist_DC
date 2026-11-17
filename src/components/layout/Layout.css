@@ -206,6 +206,67 @@
   color: var(--ink-1);
   font-weight: 600;
 }
+.sesion-chip {
+  border-color: var(--accent);
+}
+.rol-tag {
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: rgba(51, 199, 214, 0.14);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.sesion-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.sesion-card .avatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(51, 199, 214, 0.18);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+.sesion-datos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.sesion-datos b {
+  color: var(--ink-1);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sesion-datos span {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.sidebar.collapsed .sesion-datos {
+  display: none;
+}
+.sidebar.collapsed .sesion-card {
+  justify-content: center;
+  padding: 8px 0;
+}
+
 .clock {
   font-family: var(--font-mono);
   font-size: 13px;
@@ -236,6 +297,9 @@
     padding: 16px;
   }
   .turno-chip {
+    display: none;
+  }
+  .sesion-chip {
     display: none;
   }
 }
