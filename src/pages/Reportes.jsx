@@ -29,7 +29,7 @@ export default function Reportes() {
 
   useEffect(() => {
     let vigente = true
-    Promise.all([getBitacoras(), getInventario()]).then(([b, i]) => {
+    Promise.all([getBitacoras(), getInventario({ incluirBajas: true })]).then(([b, i]) => {
       if (!vigente) return
       setBitacoras(b.data || [])
       setInventario(i.data || [])

@@ -60,25 +60,41 @@ export default function App() {
           {/* INVENTARIO */}
           <Route
             path="inventario"
-            element={<Inventario />}
+            element={
+              <RoleProtectedRoute permiso="inventario.ver">
+                <Inventario />
+              </RoleProtectedRoute>
+            }
           />
 
           {/* BITÁCORA */}
           <Route
             path="bitacora"
-            element={<Bitacora />}
+            element={
+              <RoleProtectedRoute permiso="bitacoras.ver">
+                <Bitacora />
+              </RoleProtectedRoute>
+            }
           />
 
           {/* ENTREGA DE TURNO */}
           <Route
             path="entrega-turno"
-            element={<EntregaTurno />}
+            element={
+              <RoleProtectedRoute permiso="entregas.ver">
+                <EntregaTurno />
+              </RoleProtectedRoute>
+            }
           />
 
           {/* CENTRO DE ALARMAS */}
           <Route
             path="centro-alarmas"
-            element={<CentroAlarmas />}
+            element={
+              <RoleProtectedRoute permiso="alarmas.ver">
+                <CentroAlarmas />
+              </RoleProtectedRoute>
+            }
           />
 
           {/* ESTADO DE EQUIPOS */}
@@ -102,13 +118,21 @@ export default function App() {
           {/* REPORTES */}
           <Route
             path="reportes"
-            element={<Reportes />}
+            element={
+              <RoleProtectedRoute permiso="bitacoras.ver">
+                <Reportes />
+              </RoleProtectedRoute>
+            }
           />
 
           {/* DASHBOARD EJECUTIVO */}
           <Route
             path="dashboard-ejecutivo"
-            element={<DashboardEjecutivo />}
+            element={
+              <RoleProtectedRoute permiso="bitacoras.ver">
+                <DashboardEjecutivo />
+              </RoleProtectedRoute>
+            }
           />
 
           {/* USUARIOS */}
