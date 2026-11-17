@@ -12,7 +12,7 @@ import {
   Col
 } from "antd"
 
-import Swal from "sweetalert2"
+import Swal from "../utils/swal"
 
 import {
   getInventario,
@@ -84,7 +84,7 @@ export default function Inventario() {
             icon: "success",
             title: "Actualizado",
             text: "Equipo actualizado correctamente",
-            confirmButtonColor: "#1677ff"
+            confirmButtonColor: "#33C7D6"
           })
           cargar()
         }
@@ -98,7 +98,7 @@ export default function Inventario() {
             icon: "success",
             title: "Creado",
             text: "Equipo creado correctamente",
-            confirmButtonColor: "#1677ff"
+            confirmButtonColor: "#33C7D6"
           })
           cargar()
         }
@@ -120,8 +120,8 @@ export default function Inventario() {
       text: "Esta acción no se puede deshacer.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
+      confirmButtonColor: "#F2555A",
+      cancelButtonColor: "#26303C",
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar"
     })
@@ -143,7 +143,7 @@ export default function Inventario() {
       icon: "success",
       title: "Eliminado",
       text: "Equipo eliminado correctamente",
-      confirmButtonColor: "#1677ff"
+      confirmButtonColor: "#33C7D6"
     })
 
     cargar()

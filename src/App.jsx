@@ -2,6 +2,9 @@
 // APP COMPLETO CORREGIDO SIN ERRORES
 
 import React from "react"
+import { ConfigProvider } from "antd"
+import esES from "antd/locale/es_ES"
+import { antdTheme } from "./app/theme"
 import {
   BrowserRouter,
   Routes,
@@ -28,6 +31,7 @@ import Usuarios from "./pages/Usuarios"
 
 export default function App() {
   return (
+    <ConfigProvider theme={antdTheme} locale={esES}>
     <BrowserRouter>
       <Routes>
 
@@ -122,5 +126,6 @@ export default function App() {
 
       </Routes>
     </BrowserRouter>
+    </ConfigProvider>
   )
 }

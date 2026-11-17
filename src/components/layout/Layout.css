@@ -1,0 +1,241 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 224px;
+  flex-shrink: 0;
+  background: var(--bg-1);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.18s ease;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+}
+.sidebar.collapsed {
+  width: 72px;
+}
+
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--line);
+  min-height: 60px;
+}
+.sidebar-head .mark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: linear-gradient(155deg, var(--accent), #1e7b85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #08171a;
+  font-weight: 700;
+  font-size: 13px;
+  font-family: var(--font-mono);
+}
+.sidebar-head .brand {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.sidebar-head .brand b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.sidebar-head .brand span {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.sidebar.collapsed .brand {
+  display: none;
+}
+
+.nav {
+  flex: 1;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--ink-2);
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 13.5px;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.nav-item .icon {
+  flex-shrink: 0;
+  font-size: 17px;
+  display: inline-flex;
+}
+.nav-item:hover {
+  background: var(--bg-2);
+  color: var(--ink-1);
+}
+.nav-item.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: #22505a;
+}
+.sidebar.collapsed .nav-item {
+  gap: 0;
+  justify-content: center;
+  padding: 10px;
+}
+.sidebar.collapsed .nav-item .label {
+  display: none;
+}
+.nav-item .badge {
+  margin-left: auto;
+  background: var(--crit-bg);
+  color: var(--crit);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+.sidebar.collapsed .nav-item .badge {
+  display: none;
+}
+
+.sidebar-foot {
+  padding: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.foot-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+}
+.foot-btn:hover {
+  color: var(--ink-1);
+  border-color: var(--ink-3);
+}
+.foot-btn.logout:hover {
+  color: var(--crit);
+  border-color: var(--crit);
+}
+.sidebar.collapsed .foot-btn .label {
+  display: none;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(11, 15, 20, 0.9);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  gap: 16px;
+  min-height: 60px;
+}
+.topbar h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.topbar .sub {
+  color: var(--ink-2);
+  font-size: 12.5px;
+  margin-top: 2px;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.turno-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.turno-chip b {
+  color: var(--ink-1);
+  font-weight: 600;
+}
+.clock {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-2);
+  min-width: 64px;
+  text-align: right;
+}
+
+.content {
+  flex: 1;
+  padding: 22px 24px 60px;
+  overflow-x: hidden;
+}
+
+@media (max-width: 820px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 40;
+  }
+  .sidebar.collapsed {
+    width: 0;
+    border: none;
+    overflow: hidden;
+  }
+  .content {
+    padding: 16px;
+  }
+  .turno-chip {
+    display: none;
+  }
+}

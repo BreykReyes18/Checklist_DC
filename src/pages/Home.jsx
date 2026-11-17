@@ -1,7 +1,6 @@
 // pages/Home.jsx
 
 import React, { useEffect, useState } from "react"
-import { Card } from "antd"
 
 import {
   getInventario
@@ -43,44 +42,28 @@ export default function Home() {
     cargarDashboard()
   }, [])
 
+  const stats = [
+    { n: totalEquipos, l: "Equipos registrados", c: "" },
+    { n: equiposActivos, l: "Equipos activos", c: "accent-ok" },
+    { n: totalBitacoras, l: "Bitácoras registradas", c: "" }
+  ]
+
   return (
     <div>
-      <h1 className="text-4xl font-bold mb-6">
-        Dashboard Data Center Casa Pellas - Operadores IT
-      </h1>
+      <div className="section-head">
+        <div>
+          <h2>Dashboard Data Center Casa Pellas</h2>
+          <p>Operadores IT</p>
+        </div>
+      </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-
-        <Card className="rounded-2xl shadow-lg">
-          <h2 className="text-xl font-bold">
-            Equipos Registrados
-          </h2>
-
-          <p className="text-4xl mt-4 font-bold">
-            {totalEquipos}
-          </p>
-        </Card>
-
-        <Card className="rounded-2xl shadow-lg">
-          <h2 className="text-xl font-bold">
-            Equipos Activos
-          </h2>
-
-          <p className="text-4xl mt-4 font-bold">
-            {equiposActivos}
-          </p>
-        </Card>
-
-        <Card className="rounded-2xl shadow-lg">
-          <h2 className="text-xl font-bold">
-            Bitácoras Registradas
-          </h2>
-
-          <p className="text-4xl mt-4 font-bold">
-            {totalBitacoras}
-          </p>
-        </Card>
-
+      <div className="stat-grid">
+        {stats.map((s) => (
+          <div key={s.l} className={`stat-card ${s.c}`}>
+            <div className="num">{s.n}</div>
+            <div className="lbl">{s.l}</div>
+          </div>
+        ))}
       </div>
     </div>
   )

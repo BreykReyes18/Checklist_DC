@@ -15,15 +15,15 @@ import {
 } from "recharts"
 
 const COLORS_ESTADO = [
-  "#ef4444",
-  "#facc15",
-  "#22c55e"
+  "#F2555A",
+  "#F2A93B",
+  "#35D07F"
 ]
 
 const COLORS_SEVERIDAD = [
-  "#ef4444",
-  "#38bdf8",
-  "#22c55e"
+  "#F2555A",
+  "#33C7D6",
+  "#35D07F"
 ]
 
 export default function AlarmasCharts({
@@ -56,7 +56,7 @@ export default function AlarmasCharts({
             <Statistic
               title="Activas"
               value={activas}
-              valueStyle={{ color: "#ef4444" }}
+              valueStyle={{ color: "#F2555A" }}
             />
           </Card>
         </Col>
@@ -66,7 +66,7 @@ export default function AlarmasCharts({
             <Statistic
               title="En Monitoreo"
               value={monitoreo}
-              valueStyle={{ color: "#facc15" }}
+              valueStyle={{ color: "#F2A93B" }}
             />
           </Card>
         </Col>
@@ -76,7 +76,7 @@ export default function AlarmasCharts({
             <Statistic
               title="Resueltas"
               value={resueltas}
-              valueStyle={{ color: "#22c55e" }}
+              valueStyle={{ color: "#35D07F" }}
             />
           </Card>
         </Col>
@@ -108,7 +108,7 @@ export default function AlarmasCharts({
                   ))}
                 </Pie>
 
-                <Tooltip />
+                <Tooltip contentStyle={{ background: "#1A222D", border: "1px solid #26303C", borderRadius: 8, color: "#E7EBF0" }} itemStyle={{ color: "#E7EBF0" }} />
 
               </PieChart>
             </ResponsiveContainer>
@@ -139,7 +139,7 @@ export default function AlarmasCharts({
                   ))}
                 </Pie>
 
-                <Tooltip />
+                <Tooltip contentStyle={{ background: "#1A222D", border: "1px solid #26303C", borderRadius: 8, color: "#E7EBF0" }} itemStyle={{ color: "#E7EBF0" }} />
 
               </PieChart>
             </ResponsiveContainer>

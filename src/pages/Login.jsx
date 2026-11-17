@@ -76,10 +76,11 @@ export default function Login() {
   // =========================
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-[#0B0F14] p-6">
 
       <Card
         className="w-full max-w-md rounded-2xl shadow-xl"
+        style={{ background: "#121821", border: "1px solid #26303C" }}
       >
         <Title
           level={2}
