@@ -5,7 +5,7 @@ import { create } from "zustand"
 import { supabase } from "../services/supabaseClient.js"
 
 const cargarPerfil = async (user) => {
-  if (!user) return { perfil: null, esAdmin: false }
+  if (!user) return { perfil: null, esAdmin: false, permisos: [] }
 
   const { data } = await supabase
     .from("usuarios")
@@ -13,17 +13,23 @@ const cargarPerfil = async (user) => {
     .eq("auth_id", user.id)
     .maybeSingle()
 
+  const { data: permisos } = await supabase.rpc("mis_permisos")
+
   return {
     perfil: data || null,
-    esAdmin: data?.rol === "Administrador"
+    esAdmin: data?.rol === "Administrador",
+    permisos: permisos || []
   }
 }
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   user: null,
   session: null,
   perfil: null,
   esAdmin: false,
+  permisos: [],
+
+  puede: (permiso) => get().esAdmin || get().permisos.includes(permiso),
   loading: true,
 
   // =========================
@@ -64,7 +70,8 @@ export const useAuthStore = create((set) => ({
       user: null,
       session: null,
       perfil: null,
-      esAdmin: false
+      esAdmin: false,
+      permisos: []
     })
   },
 

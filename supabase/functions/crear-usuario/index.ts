@@ -23,19 +23,25 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return responder({ error: "Metodo no permitido" }, 405)
 
   const url = Deno.env.get("SUPABASE_URL")!
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-
-  // 1. Verificar que quien llama es administrador (con su propio token)
-  const authHeader = req.headers.get("Authorization")
-  if (!authHeader) return responder({ error: "Sin sesion" }, 401)
-
-  const comoUsuario = createClient(url, anonKey, {
-    global: { headers: { Authorization: authHeader } }
+  const admin = createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
   })
 
-  const { data: esAdmin, error: errAdmin } = await comoUsuario.rpc("es_admin")
-  if (errAdmin || esAdmin !== true) {
+  // 1. Verificar que quien llama es un administrador activo
+  const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "")
+  if (!token) return responder({ error: "Sin sesion" }, 401)
+
+  const { data: quien, error: errQuien } = await admin.auth.getUser(token)
+  if (errQuien || !quien.user) return responder({ error: "Sesion invalida" }, 401)
+
+  const { data: perfil } = await admin
+    .from("usuarios")
+    .select("rol, activo")
+    .eq("auth_id", quien.user.id)
+    .maybeSingle()
+
+  if (!perfil || perfil.rol !== "Administrador" || perfil.activo === false) {
     return responder({ error: "Solo el administrador puede crear usuarios" }, 403)
   }
 
@@ -56,8 +62,6 @@ Deno.serve(async (req) => {
   }
 
   // 3. Crear con privilegios de servicio
-  const admin = createClient(url, serviceKey)
-
   const { data: creado, error: errCrear } = await admin.auth.admin.createUser({
     email,
     password,

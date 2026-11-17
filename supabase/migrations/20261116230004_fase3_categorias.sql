@@ -35,6 +35,8 @@ create index inventario_dc_categoria_id_idx on public.inventario_dc (categoria_i
 create or replace function public.sincronizar_categoria_texto()
 returns trigger
 language plpgsql
+security definer
+set search_path = public
 as $$
 begin
   if new.categoria_id is not null then
@@ -49,6 +51,28 @@ $$;
 create trigger inventario_dc_sincronizar_categoria
   before insert or update of categoria_id on public.inventario_dc
   for each row execute function public.sincronizar_categoria_texto();
+
+-- Al renombrar una categoria se actualiza el texto en los equipos
+create or replace function public.propagar_nombre_categoria()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.inventario_dc
+  set categoria = new.nombre
+  where categoria_id = new.id;
+  return new;
+end;
+$$;
+
+create trigger categorias_equipo_propagar_nombre
+  after update of nombre on public.categorias_equipo
+  for each row execute function public.propagar_nombre_categoria();
+
+revoke all on function public.sincronizar_categoria_texto() from public, anon, authenticated;
+revoke all on function public.propagar_nombre_categoria() from public, anon, authenticated;
 
 -- Seguridad de la nueva tabla
 alter table public.categorias_equipo enable row level security;

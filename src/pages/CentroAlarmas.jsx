@@ -31,6 +31,7 @@ import {
 } from "../services/centroAlarmasService"
 
 import { useCentroAlarmasStore } from "../store/centroAlarmasStore"
+import { useAuthStore } from "../store/authStore"
 
 import AlarmasCharts from "../components/Alarmas/AlarmasCharts"
 
@@ -47,6 +48,7 @@ const SEVERIDAD_COLORS = {
 }
 
 export default function CentroAlarmas() {
+  const { puede } = useAuthStore()
   const {
     alarmas,
     filtro,
@@ -118,24 +120,9 @@ export default function CentroAlarmas() {
         return
       }
 
-      if (record.estado === "Resuelta" && nuevoEstado !== "Resuelta") {
-        const { error } = await updateAlarma(record.id, {
-          estado: nuevoEstado,
-          activa: true,
-          fecha_inicio: new Date(),
-          fecha_resolucion: null,
-          duracion_minutos: null
-        })
-
-        if (error) {
-          console.error(error)
-          message.error("Error actualizando alarma")
-          setLoading(false)
-          return
-        }
-
-        message.success("Alarma reabierta")
-        await cargar()
+      // Una alarma resuelta queda cerrada: no se puede reabrir
+      if (record.estado === "Resuelta") {
+        setLoading(false)
         return
       }
 
@@ -315,29 +302,35 @@ export default function CentroAlarmas() {
       width: 220,
       render: (_, record) => (
         <Space direction="vertical" size={8} style={{ width: "100%" }}>
-          <Select
-            size="small"
-            style={{ width: "100%" }}
-            value={record.estado}
-            onChange={(v) => cambiarEstado(record, v)}
-            options={[
-              { value: "Activa", label: "Activa" },
-              { value: "En monitoreo", label: "En monitoreo" },
-              { value: "Resuelta", label: "Resuelta" }
-            ]}
-          />
-
-          {record.estado !== "Resuelta" && (
-            <Tooltip title="Marcar como resuelta">
-              <Button
-                type="primary"
+          {record.estado === "Resuelta" ? (
+            <Tag color="green">Cerrada</Tag>
+          ) : (
+            <>
+              <Select
                 size="small"
-                block
-                onClick={() => resolver(record.id)}
-              >
-                Resolver
-              </Button>
-            </Tooltip>
+                style={{ width: "100%" }}
+                value={record.estado}
+                disabled={!puede("alarmas.gestionar")}
+                onChange={(v) => cambiarEstado(record, v)}
+                options={[
+                  { value: "Activa", label: "Activa" },
+                  { value: "En monitoreo", label: "En monitoreo" }
+                ]}
+              />
+
+              {puede("alarmas.gestionar") && (
+                <Tooltip title="Marcar como resuelta">
+                  <Button
+                    type="primary"
+                    size="small"
+                    block
+                    onClick={() => resolver(record.id)}
+                  >
+                    Resolver
+                  </Button>
+                </Tooltip>
+              )}
+            </>
           )}
         </Space>
       )

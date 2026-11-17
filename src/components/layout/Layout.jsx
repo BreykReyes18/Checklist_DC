@@ -28,15 +28,15 @@ import "./Layout.css"
 
 const NAV = [
   { key: "/", icon: <HomeOutlined />, label: "Inicio", sub: "Resumen general del Data Center" },
-  { key: "/inventario", icon: <DatabaseOutlined />, label: "Inventario", sub: "Equipos registrados del Data Center" },
-  { key: "/bitacora", icon: <FileTextOutlined />, label: "Bitácora", sub: "Revisión de equipos por turno" },
-  { key: "/entrega-turno", icon: <SwapOutlined />, label: "Entrega de Turno", sub: "Relevo entre operadores" },
-  { key: "/centro-alarmas", icon: <AlertOutlined />, label: "Centro de Alarmas", sub: "Seguimiento y resolución de incidentes", badge: true },
+  { key: "/inventario", permiso: "inventario.ver", icon: <DatabaseOutlined />, label: "Inventario", sub: "Equipos registrados del Data Center" },
+  { key: "/bitacora", permiso: "bitacoras.ver", icon: <FileTextOutlined />, label: "Bitácora", sub: "Revisión de equipos por turno" },
+  { key: "/entrega-turno", permiso: "entregas.ver", icon: <SwapOutlined />, label: "Entrega de Turno", sub: "Relevo entre operadores" },
+  { key: "/centro-alarmas", permiso: "alarmas.ver", icon: <AlertOutlined />, label: "Centro de Alarmas", sub: "Seguimiento y resolución de incidentes", badge: true },
   { key: "/estado-equipos", icon: <CheckCircleOutlined />, label: "Estado de Equipos", sub: "Disponibilidad en tiempo real" },
   { key: "/escalamiento", icon: <WarningOutlined />, label: "Escalamiento Técnico", sub: "Contactos y niveles de escalamiento" },
   { key: "/mantenimiento", icon: <ToolOutlined />, label: "Mantenimiento", sub: "Mantenimientos programados" },
-  { key: "/reportes", icon: <BarChartOutlined />, label: "Reportes", sub: "Historial y exportación" },
-  { key: "/dashboard-ejecutivo", icon: <DashboardOutlined />, label: "Dashboard Ejecutivo", sub: "Indicadores consolidados" },
+  { key: "/reportes", permiso: "bitacoras.ver", icon: <BarChartOutlined />, label: "Reportes", sub: "Historial y exportación" },
+  { key: "/dashboard-ejecutivo", permiso: "bitacoras.ver", icon: <DashboardOutlined />, label: "Dashboard Ejecutivo", sub: "Indicadores consolidados" },
   { key: "/usuarios", icon: <TeamOutlined />, label: "Usuarios", sub: "Gestión de acceso" }
 ]
 
@@ -50,7 +50,7 @@ export default function Layout() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout, esAdmin, perfil, user } = useAuthStore()
+  const { logout, esAdmin, perfil, user, puede } = useAuthStore()
 
   const nombreSesion = perfil?.nombre || user?.email || "Usuario"
   const rolSesion = perfil?.rol || ""
@@ -60,7 +60,10 @@ export default function Layout() {
     .slice(0, 2)
     .map((p) => p[0].toUpperCase())
     .join("")
-  const navVisible = NAV.filter((n) => n.key !== "/usuarios" || esAdmin)
+  const navVisible = NAV.filter((n) => {
+    if (n.key === "/usuarios") return esAdmin
+    return !n.permiso || puede(n.permiso)
+  })
 
   const actual =
     NAV.find((n) => n.key === location.pathname) || NAV[0]

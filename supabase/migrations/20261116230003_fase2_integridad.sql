@@ -17,6 +17,12 @@ create trigger centro_alarmas_updated_at
   before update on public.centro_alarmas
   for each row execute function public.update_updated_at_column();
 
+-- Alarmas que apuntan a equipos ya eliminados: se conserva la alarma y el nombre del equipo
+update public.centro_alarmas a
+set equipo_id = null
+where a.equipo_id is not null
+  and not exists (select 1 from public.inventario_dc i where i.id = a.equipo_id);
+
 -- Llaves foraneas
 alter table public.centro_alarmas
   add constraint centro_alarmas_equipo_id_fkey
