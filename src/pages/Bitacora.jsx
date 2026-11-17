@@ -20,7 +20,7 @@ import {
 } from "../services/bitacoraService"
 import { getInventario } from "../services/inventarioService"
 
-import { generarBitacoraPdf } from "../utils/bitacoraPdf"
+import { generarBitacoraPdf, armarEquiposExtra } from "../utils/bitacoraPdf"
 
 import {
   addAlarma,
@@ -213,7 +213,7 @@ export default function Bitacora() {
       const data = {
         ...bitacora,
         checklist_completo,
-        equipos_extra: bitacora.equipos_extra || []
+        equipos_extra: armarEquiposExtra(equipos, bitacora.equipos_extra)
       }
 
       let resultadoBitacora

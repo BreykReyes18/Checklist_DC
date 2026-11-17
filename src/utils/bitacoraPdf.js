@@ -43,8 +43,47 @@ const estadoDe = (extra) => {
   return "PENDIENTE"
 }
 
-export const generarBitacoraPdf = async ({ bitacora, equipos }) => {
-  const doc = new jsPDF({ unit: "mm", format: "a4" })
+// Une el inventario con el estado de cada equipo y guarda nombre y categoria,
+// asi el PDF de una bitacora guardada es siempre el mismo aunque cambie el inventario
+export const armarEquiposExtra = (inventario = [], extras = []) => {
+  const porId = new Map(extras.map((e) => [e.id, e]))
+  const vigentes = inventario.map((eq) => ({
+    revisado: false,
+    alerta: false,
+    ...(porId.get(eq.id) || {}),
+    id: eq.id,
+    nombre_equipo: eq.nombre_equipo,
+    categoria: eq.categoria || "Otros"
+  }))
+  const ids = new Set(inventario.map((e) => e.id))
+  const historicos = extras.filter((e) => e.nombre_equipo && !ids.has(e.id))
+  return [...vigentes, ...historicos]
+}
+
+const resolverEquipos = (bitacora, inventario) => {
+  const copia = (bitacora.equipos_extra || []).filter((e) => e.nombre_equipo)
+  if (copia.length) {
+    return copia.map((e) => ({
+      id: e.id,
+      nombre_equipo: e.nombre_equipo,
+      categoria: e.categoria
+    }))
+  }
+  return inventario
+}
+
+export const resumenBitacora = (bitacora, inventario = []) => {
+  const equipos = resolverEquipos(bitacora, inventario)
+  const extras = bitacora.equipos_extra || []
+  const r = { VERIFICADO: 0, PENDIENTE: 0, ALERTA: 0 }
+  equipos.forEach((eq) => {
+    r[estadoDe(extras.find((x) => x.id === eq.id))] += 1
+  })
+  return r
+}
+
+const dibujarBitacora = (doc, bitacora, inventario, logo) => {
+  const equipos = resolverEquipos(bitacora, inventario)
   const extras = bitacora.equipos_extra || []
 
   const agrupados = equipos.reduce((acc, eq) => {
@@ -72,7 +111,6 @@ export const generarBitacoraPdf = async ({ bitacora, equipos }) => {
   const revisados = conteo.VERIFICADO + conteo.ALERTA
 
   // -------- Encabezado --------
-  const logo = await cargarLogo("/logo03.png")
   if (logo) {
     const h = 14
     doc.addImage(logo, "PNG", MARGEN, 12, h * (logo.width / logo.height), h)
@@ -283,17 +321,39 @@ export const generarBitacoraPdf = async ({ bitacora, equipos }) => {
   doc.text("Firma Operador", x1 + fw / 2, yf + 5, { align: "center" })
   doc.text("Firma Supervisor", x2 + fw / 2, yf + 5, { align: "center" })
 
-  // Pie con paginacion si hay mas de una pagina
+}
+
+export const generarBitacorasPdf = async (lista, inventario, nombreArchivo) => {
+  const doc = new jsPDF({ unit: "mm", format: "a4" })
+  const logo = await cargarLogo("/logo03.png")
+
+  lista.forEach((b, i) => {
+    if (i > 0) doc.addPage()
+    dibujarBitacora(doc, b, inventario, logo)
+  })
+
   const paginas = doc.getNumberOfPages()
   if (paginas > 1) {
     for (let p = 1; p <= paginas; p++) {
       doc.setPage(p)
+      doc.setFont("helvetica", "normal")
       doc.setFontSize(8)
       doc.setTextColor(...GRIS)
       doc.text(`Página ${p} de ${paginas}`, ANCHO - MARGEN, ALTO - 8, { align: "right" })
     }
   }
 
-  const nombre = (bitacora.fecha || "").split(" ")[0] || "bitacora"
-  doc.save(`Bitacora_DataCenter_${nombre}.pdf`)
+  const unica = (lista[0]?.fecha || "").split(" ")[0] || "bitacora"
+  doc.save(
+    nombreArchivo ||
+      (lista.length === 1
+        ? `Bitacora_DataCenter_${unica}.pdf`
+        : `Reporte_Bitacoras_${lista.length}.pdf`)
+  )
 }
+
+export const generarBitacoraPdf = ({ bitacora, equipos }) =>
+  generarBitacorasPdf(
+    [{ ...bitacora, equipos_extra: armarEquiposExtra(equipos, bitacora.equipos_extra) }],
+    equipos
+  )
