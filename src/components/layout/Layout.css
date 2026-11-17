@@ -246,6 +246,7 @@
   flex-direction: column;
   min-width: 0;
   line-height: 1.25;
+  gap: 5px;
 }
 .sesion-datos b {
   color: var(--ink-1);
