@@ -60,7 +60,7 @@ drop policy if exists categorias_equipo_update on public.categorias_equipo;
 drop policy if exists categorias_equipo_delete on public.categorias_equipo;
 
 create policy categorias_equipo_select on public.categorias_equipo
-  for select to authenticated using (public.es_usuario_activo());
+  for select to authenticated using (public.tiene_permiso('categorias.ver'));
 
 create policy categorias_equipo_insert on public.categorias_equipo
   for insert to authenticated with check (public.tiene_permiso('categorias.crear'));
