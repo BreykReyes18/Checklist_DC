@@ -5,7 +5,7 @@ const { Content } = Layout
 export function MainLayout({ children }) { return ( <Layout style={{ minHeight: "100vh" }}> <Sidebar />
 
 <Layout>
-    <Content className="bg-slate-100 p-6">
+    <Content className="bg-[#0B0F14] p-6">
       {children}
     </Content>
   </Layout>

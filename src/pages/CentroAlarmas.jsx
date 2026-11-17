@@ -35,15 +35,15 @@ import { useCentroAlarmasStore } from "../store/centroAlarmasStore"
 import AlarmasCharts from "../components/Alarmas/AlarmasCharts"
 
 const ESTADO_COLORS = {
-  Activa: "#ef4444",
-  "En monitoreo": "#facc15",
-  Resuelta: "#22c55e"
+  Activa: "#F2555A",
+  "En monitoreo": "#F2A93B",
+  Resuelta: "#35D07F"
 }
 
 const SEVERIDAD_COLORS = {
-  Crítica: "#ef4444",
-  Media: "#38bdf8",
-  Baja: "#22c55e"
+  Crítica: "#F2555A",
+  Media: "#33C7D6",
+  Baja: "#35D07F"
 }
 
 export default function CentroAlarmas() {
@@ -411,7 +411,7 @@ export default function CentroAlarmas() {
                       )
                     })}
                   </Pie>
-                  <RechartsTooltip />
+                  <RechartsTooltip contentStyle={{ background: "#1A222D", border: "1px solid #26303C", borderRadius: 8, color: "#E7EBF0" }} itemStyle={{ color: "#E7EBF0" }} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -447,7 +447,7 @@ export default function CentroAlarmas() {
                       )
                     })}
                   </Pie>
-                  <RechartsTooltip />
+                  <RechartsTooltip contentStyle={{ background: "#1A222D", border: "1px solid #26303C", borderRadius: 8, color: "#E7EBF0" }} itemStyle={{ color: "#E7EBF0" }} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -482,7 +482,10 @@ export default function CentroAlarmas() {
               style={{
                 height: 32,
                 padding: "0 12px",
-                border: "1px solid #d9d9d9",
+                border: "1px solid #26303C",
+                background: "#1A222D",
+                color: "#E7EBF0",
+                colorScheme: "dark",
                 borderRadius: 6
               }}
             />
@@ -494,7 +497,10 @@ export default function CentroAlarmas() {
               style={{
                 height: 32,
                 padding: "0 12px",
-                border: "1px solid #d9d9d9",
+                border: "1px solid #26303C",
+                background: "#1A222D",
+                color: "#E7EBF0",
+                colorScheme: "dark",
                 borderRadius: 6
               }}
             />

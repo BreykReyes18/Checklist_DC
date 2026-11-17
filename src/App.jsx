@@ -2,6 +2,9 @@
 // APP COMPLETO CORREGIDO SIN ERRORES
 
 import React from "react"
+import { ConfigProvider } from "antd"
+import esES from "antd/locale/es_ES"
+import { antdTheme } from "./app/theme"
 import {
   BrowserRouter,
   Routes,
@@ -11,6 +14,7 @@ import {
 
 import Layout from "./components/layout/Layout.jsx"
 import ProtectedRoute from "./components/ProtectedRoute"
+import RoleProtectedRoute from "./components/RoleProtectedRoute"
 
 /* PÁGINAS */
 import Login from "./pages/Login"
@@ -28,6 +32,7 @@ import Usuarios from "./pages/Usuarios"
 
 export default function App() {
   return (
+    <ConfigProvider theme={antdTheme} locale={esES}>
     <BrowserRouter>
       <Routes>
 
@@ -107,10 +112,13 @@ export default function App() {
           />
 
           {/* USUARIOS */}
-          {/* SIN RoleProtectedRoute por ahora para evitar cierre de sesión */}
           <Route
             path="usuarios"
-            element={<Usuarios />}
+            element={
+              <RoleProtectedRoute allowedRoles={["Administrador"]}>
+                <Usuarios />
+              </RoleProtectedRoute>
+            }
           />
         </Route>
 
@@ -122,5 +130,6 @@ export default function App() {
 
       </Routes>
     </BrowserRouter>
+    </ConfigProvider>
   )
 }

@@ -1,48 +1,57 @@
 import { supabase } from "./supabaseClient"
 
-export const crearUsuario = async ({
-  email,
-  password,
-  nombre,
-  usuario,
-  rol,
-  area
-}) => {
-  // Crear en Auth
-  const { data, error } =
-    await supabase.auth.signUp({
-      email,
-      password
-    })
+export const getUsuarios = async () => {
+  const { data, error } = await supabase
+    .from("usuarios")
+    .select("id, auth_id, nombre, usuario, correo, rol, area, activo")
+    .order("nombre", { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
+
+export const getRoles = async () => {
+  const { data, error } = await supabase
+    .from("roles")
+    .select("nombre, descripcion")
+    .order("nombre", { ascending: true })
+
+  if (error) throw error
+  return data || []
+}
+
+export const actualizarUsuario = async (id, cambios) => {
+  const { data, error } = await supabase
+    .from("usuarios")
+    .update(cambios)
+    .eq("id", id)
+    .select()
+
+  if (error) throw error
+  if (!data || data.length === 0) {
+    throw new Error("No se pudo actualizar el usuario (sin permisos)")
+  }
+  return data[0]
+}
+
+// La creacion pasa por una Edge Function que valida que quien llama es admin
+export const crearUsuario = async (datos) => {
+  const { data, error } = await supabase.functions.invoke(
+    "crear-usuario",
+    { body: datos }
+  )
 
   if (error) {
-    alert(error.message)
-    return null
+    let mensaje = error.message
+    try {
+      const detalle = await error.context.json()
+      if (detalle?.error) mensaje = detalle.error
+    } catch {
+      // se conserva el mensaje original
+    }
+    throw new Error(mensaje)
   }
 
-  // Guardar en tabla usuarios
-  const authId = data.user.id
-
-  const { error: profileError } =
-    await supabase
-      .from("usuarios")
-      .insert([
-        {
-          auth_id: authId,
-          nombre,
-          usuario,
-          correo: email,
-          rol,
-          area,
-          activo: true
-        }
-      ])
-
-  if (profileError) {
-    alert(profileError.message)
-    return null
-  }
-
-  alert("Usuario creado correctamente")
+  if (data?.error) throw new Error(data.error)
   return true
 }

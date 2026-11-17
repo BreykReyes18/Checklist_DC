@@ -4,9 +4,26 @@
 import { create } from "zustand"
 import { supabase } from "../services/supabaseClient.js"
 
+const cargarPerfil = async (user) => {
+  if (!user) return { perfil: null, esAdmin: false }
+
+  const { data } = await supabase
+    .from("usuarios")
+    .select("id, auth_id, nombre, usuario, correo, rol, area, activo")
+    .eq("auth_id", user.id)
+    .maybeSingle()
+
+  return {
+    perfil: data || null,
+    esAdmin: data?.rol === "Administrador"
+  }
+}
+
 export const useAuthStore = create((set) => ({
   user: null,
   session: null,
+  perfil: null,
+  esAdmin: false,
   loading: true,
 
   // =========================
@@ -25,9 +42,12 @@ export const useAuthStore = create((set) => ({
       return false
     }
 
+    const extra = await cargarPerfil(data.user)
+
     set({
       user: data.user,
-      session: data.session
+      session: data.session,
+      ...extra
     })
 
     return true
@@ -42,7 +62,9 @@ export const useAuthStore = create((set) => ({
 
     set({
       user: null,
-      session: null
+      session: null,
+      perfil: null,
+      esAdmin: false
     })
   },
 
@@ -55,9 +77,12 @@ export const useAuthStore = create((set) => ({
       data: { session }
     } = await supabase.auth.getSession()
 
+    const extra = await cargarPerfil(session?.user)
+
     set({
       session,
       user: session?.user || null,
+      ...extra,
       loading: false
     })
   },

@@ -1,5 +1,5 @@
-import React, { useState } from "react"
-import { Layout as AntLayout, Menu, Button } from "antd"
+import React, { useEffect, useState } from "react"
+import { Outlet, useNavigate, useLocation } from "react-router-dom"
 
 import {
   HomeOutlined,
@@ -13,120 +13,171 @@ import {
   SwapOutlined,
   DashboardOutlined,
   LogoutOutlined,
+  ClockCircleOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
+  MenuUnfoldOutlined,
+  CheckCircleOutlined,
+  UserOutlined
 } from "@ant-design/icons"
 
-import { Outlet, useNavigate, useLocation } from "react-router-dom"
 import { useAuthStore } from "../../store/authStore"
+import { getAlarmas } from "../../services/centroAlarmasService"
+import { getOperadorTurno } from "../../utils/constants"
 
-const { Sider, Header, Content } = AntLayout
+import "./Layout.css"
+
+const NAV = [
+  { key: "/", icon: <HomeOutlined />, label: "Inicio", sub: "Resumen general del Data Center" },
+  { key: "/inventario", icon: <DatabaseOutlined />, label: "Inventario", sub: "Equipos registrados del Data Center" },
+  { key: "/bitacora", icon: <FileTextOutlined />, label: "Bitácora", sub: "Revisión de equipos por turno" },
+  { key: "/entrega-turno", icon: <SwapOutlined />, label: "Entrega de Turno", sub: "Relevo entre operadores" },
+  { key: "/centro-alarmas", icon: <AlertOutlined />, label: "Centro de Alarmas", sub: "Seguimiento y resolución de incidentes", badge: true },
+  { key: "/estado-equipos", icon: <CheckCircleOutlined />, label: "Estado de Equipos", sub: "Disponibilidad en tiempo real" },
+  { key: "/escalamiento", icon: <WarningOutlined />, label: "Escalamiento Técnico", sub: "Contactos y niveles de escalamiento" },
+  { key: "/mantenimiento", icon: <ToolOutlined />, label: "Mantenimiento", sub: "Mantenimientos programados" },
+  { key: "/reportes", icon: <BarChartOutlined />, label: "Reportes", sub: "Historial y exportación" },
+  { key: "/dashboard-ejecutivo", icon: <DashboardOutlined />, label: "Dashboard Ejecutivo", sub: "Indicadores consolidados" },
+  { key: "/usuarios", icon: <TeamOutlined />, label: "Usuarios", sub: "Gestión de acceso" }
+]
+
+const formatClock = (d) =>
+  d.toLocaleTimeString("es-NI", { hour12: false })
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false)
+  const [alarmasActivas, setAlarmasActivas] = useState(0)
+  const [now, setNow] = useState(new Date())
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout } = useAuthStore()
+  const { logout, esAdmin, perfil, user } = useAuthStore()
+
+  const nombreSesion = perfil?.nombre || user?.email || "Usuario"
+  const rolSesion = perfil?.rol || ""
+  const iniciales = nombreSesion
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join("")
+  const navVisible = NAV.filter((n) => n.key !== "/usuarios" || esAdmin)
+
+  const actual =
+    NAV.find((n) => n.key === location.pathname) || NAV[0]
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    let activo = true
+
+    const contar = async () => {
+      const { data } = await getAlarmas()
+      if (activo && data) {
+        setAlarmasActivas(
+          data.filter((a) => a.estado === "Activa").length
+        )
+      }
+    }
+
+    contar()
+    return () => {
+      activo = false
+    }
+  }, [location.pathname])
 
   const cerrarSesion = () => {
     logout()
     navigate("/login")
   }
 
-  const items = [
-    { key: "/", icon: <HomeOutlined />, label: "Inicio" },
-    { key: "/inventario", icon: <DatabaseOutlined />, label: "Inventario" },
-    { key: "/bitacora", icon: <FileTextOutlined />, label: "Bitácora" },
-    { key: "/entrega-turno", icon: <SwapOutlined />, label: "Entrega de Turno" },
-    { key: "/centro-alarmas", icon: <AlertOutlined />, label: "Centro de Alarmas" },
-    { key: "/estado-equipos", icon: <DashboardOutlined />, label: "Estado de Equipos" },
-    { key: "/escalamiento", icon: <WarningOutlined />, label: "Escalamiento Técnico" },
-    { key: "/mantenimiento", icon: <ToolOutlined />, label: "Mantenimiento" },
-    { key: "/reportes", icon: <BarChartOutlined />, label: "Reportes" },
-    { key: "/dashboard-ejecutivo", icon: <DashboardOutlined />, label: "Dashboard Ejecutivo" },
-    { key: "/usuarios", icon: <TeamOutlined />, label: "Usuarios" }
-  ]
-
   return (
-    <AntLayout style={{ minHeight: "100vh" }}>
-      <Sider
-        width={270}
-        collapsedWidth={80}
-        collapsed={collapsed}
-        trigger={null}
-        style={{
-          background: "#041b33"
-        }}
-      >
-        <div
-          style={{
-            height: 64,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: collapsed ? "center" : "flex-start",
-            padding: collapsed ? 0 : "0 16px",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: collapsed ? 18 : 16,
-            borderBottom: "1px solid rgba(255,255,255,0.08)"
-          }}
-        >
-          {collapsed ? "DC" : "DATA CENTER PRO"}
+    <div className="shell">
+      <aside className={`sidebar ${collapsed ? "collapsed" : ""}`}>
+        <div className="sidebar-head">
+          <div className="mark">CP</div>
+          <div className="brand">
+            <b>Data Center</b>
+            <span>Casa Pellas</span>
+          </div>
         </div>
 
-        <Menu
-          theme="dark"
-          mode="inline"
-          inlineCollapsed={collapsed}
-          selectedKeys={[location.pathname]}
-          items={items}
-          onClick={({ key }) => navigate(key)}
-          style={{
-            background: "#041b33",
-            borderRight: 0
-          }}
-        />
-      </Sider>
+        <nav className="nav">
+          {navVisible.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              title={item.label}
+              className={`nav-item ${
+                location.pathname === item.key ? "active" : ""
+              }`}
+              onClick={() => navigate(item.key)}
+            >
+              <span className="icon">{item.icon}</span>
+              <span className="label">{item.label}</span>
+              {item.badge && alarmasActivas > 0 && (
+                <span className="badge">{alarmasActivas}</span>
+              )}
+            </button>
+          ))}
+        </nav>
 
-      <AntLayout>
-        <Header
-          style={{
-            background: "#fff",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingInline: 16
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-            />
-            <h2 className="text-xl font-bold m-0">
-              Sistema de Gestión Data Center
-            </h2>
+        <div className="sidebar-foot">
+          <div className="sesion-card" title={`${nombreSesion} · ${rolSesion}`}>
+            <div className="avatar">{iniciales}</div>
+            <div className="sesion-datos">
+              <b>{nombreSesion}</b>
+              <span>{rolSesion}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="foot-btn logout"
+            onClick={cerrarSesion}
+            title="Cerrar sesión"
+          >
+            <LogoutOutlined />
+            <span className="label">Cerrar sesión</span>
+          </button>
+          <button
+            type="button"
+            className="foot-btn"
+            onClick={() => setCollapsed(!collapsed)}
+            title={collapsed ? "Expandir menú" : "Colapsar menú"}
+          >
+            {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            <span className="label">Colapsar</span>
+          </button>
+        </div>
+      </aside>
+
+      <div className="main">
+        <header className="topbar">
+          <div>
+            <h1>{actual.label}</h1>
+            <div className="sub">{actual.sub}</div>
           </div>
 
-          <Button danger icon={<LogoutOutlined />} onClick={cerrarSesion}>
-            Cerrar Sesión
-          </Button>
-        </Header>
+          <div className="topbar-right">
+            <div className="turno-chip">
+              <ClockCircleOutlined />
+              Turno activo · <b>{getOperadorTurno(now)}</b>
+            </div>
+            <div className="turno-chip sesion-chip">
+              <UserOutlined />
+              Sesión · <b>{nombreSesion}</b>
+              {rolSesion && <span className="rol-tag">{rolSesion}</span>}
+            </div>
+            <div className="clock">{formatClock(now)}</div>
+          </div>
+        </header>
 
-        <Content
-          style={{
-            margin: 24,
-            padding: 24,
-            background: "#fff",
-            borderRadius: 16,
-            minHeight: "calc(100vh - 112px)"
-          }}
-        >
+        <main className="content view-fade" key={location.pathname}>
           <Outlet />
-        </Content>
-      </AntLayout>
-    </AntLayout>
+        </main>
+      </div>
+    </div>
   )
 }

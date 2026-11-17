@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import {
   Card,
   Button,
@@ -6,13 +6,14 @@ import {
   Form,
   Input,
   Select,
+  AutoComplete,
   Tag,
   message,
   Row,
   Col
 } from "antd"
 
-import Swal from "sweetalert2"
+import Swal from "../utils/swal"
 
 import {
   getInventario,
@@ -29,6 +30,7 @@ export default function Inventario() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [editId, setEditId] = useState(null)
+  const [categoriaActiva, setCategoriaActiva] = useState(null)
 
   const [form] = Form.useForm()
 
@@ -51,6 +53,35 @@ export default function Inventario() {
   }, [])
 
   // ======================
+  // CATEGORIAS (se generan solas a partir de los equipos)
+  // ======================
+  const categorias = useMemo(() => {
+    const mapa = {}
+    equipos.forEach((e) => {
+      const nombre = e.categoria?.trim() || "Sin categoría"
+      if (!mapa[nombre]) {
+        mapa[nombre] = { nombre, total: 0, Activo: 0, Mantenimiento: 0, Inactivo: 0 }
+      }
+      mapa[nombre].total += 1
+      if (mapa[nombre][e.estado] !== undefined) mapa[nombre][e.estado] += 1
+    })
+    return Object.values(mapa).sort((a, b) => a.nombre.localeCompare(b.nombre))
+  }, [equipos])
+
+  const equiposDeCategoria = useMemo(
+    () =>
+      equipos.filter(
+        (e) => (e.categoria?.trim() || "Sin categoría") === categoriaActiva
+      ),
+    [equipos, categoriaActiva]
+  )
+
+  const categoriaVigente =
+    categoriaActiva && categorias.some((c) => c.nombre === categoriaActiva)
+      ? categoriaActiva
+      : null
+
+  // ======================
   // ABRIR MODAL
   // ======================
   const abrirModal = (equipo = null) => {
@@ -62,6 +93,9 @@ export default function Inventario() {
     } else {
       setEditId(null)
       form.resetFields()
+      if (categoriaVigente && categoriaVigente !== "Sin categoría") {
+        form.setFieldsValue({ categoria: categoriaVigente })
+      }
     }
   }
 
@@ -84,7 +118,7 @@ export default function Inventario() {
             icon: "success",
             title: "Actualizado",
             text: "Equipo actualizado correctamente",
-            confirmButtonColor: "#1677ff"
+            confirmButtonColor: "#33C7D6"
           })
           cargar()
         }
@@ -98,7 +132,7 @@ export default function Inventario() {
             icon: "success",
             title: "Creado",
             text: "Equipo creado correctamente",
-            confirmButtonColor: "#1677ff"
+            confirmButtonColor: "#33C7D6"
           })
           cargar()
         }
@@ -120,8 +154,8 @@ export default function Inventario() {
       text: "Esta acción no se puede deshacer.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
+      confirmButtonColor: "#F2555A",
+      cancelButtonColor: "#26303C",
       confirmButtonText: "Sí, eliminar",
       cancelButtonText: "Cancelar"
     })
@@ -143,7 +177,7 @@ export default function Inventario() {
       icon: "success",
       title: "Eliminado",
       text: "Equipo eliminado correctamente",
-      confirmButtonColor: "#1677ff"
+      confirmButtonColor: "#33C7D6"
     })
 
     cargar()
@@ -165,9 +199,18 @@ export default function Inventario() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">
-          Inventario Data Center
-        </h1>
+        <div className="flex items-center gap-3">
+          {categoriaVigente && (
+            <Button onClick={() => setCategoriaActiva(null)}>
+              ← Categorías
+            </Button>
+          )}
+          <h1>
+            {categoriaVigente
+              ? `Inventario · ${categoriaVigente}`
+              : "Inventario Data Center"}
+          </h1>
+        </div>
 
         <Button
           type="primary"
@@ -177,69 +220,98 @@ export default function Inventario() {
         </Button>
       </div>
 
-      {/* CARDS */}
-      <div className="grid md:grid-cols-3 gap-5">
-        {equipos.map((e) => (
-          <Card
-            key={e.id}
-            className="rounded-2xl shadow-md"
-          >
-            <h2 className="text-xl font-bold mb-4">
-              Inventario del Equipo
-            </h2>
+      {/* CATEGORIAS */}
+      {!categoriaVigente && (
+        <div className="grid md:grid-cols-3 gap-5">
+          {categorias.map((c) => (
+            <Card
+              key={c.nombre}
+              hoverable
+              className="rounded-2xl"
+              onClick={() => setCategoriaActiva(c.nombre)}
+            >
+              <h2 className="text-xl font-bold mb-1">{c.nombre}</h2>
+              <p style={{ color: "var(--ink-2)" }} className="mb-4">
+                {c.total} {c.total === 1 ? "equipo" : "equipos"}
+              </p>
 
-            <p>
-              <strong>Nombre del equipo:</strong>{" "}
-              {e.nombre_equipo}
+              <div className="flex gap-2 flex-wrap">
+                {c.Activo > 0 && (
+                  <Tag color="green">{c.Activo} activos</Tag>
+                )}
+                {c.Mantenimiento > 0 && (
+                  <Tag color="orange">{c.Mantenimiento} en mantenimiento</Tag>
+                )}
+                {c.Inactivo > 0 && (
+                  <Tag color="red">{c.Inactivo} inactivos</Tag>
+                )}
+              </div>
+            </Card>
+          ))}
+
+          {categorias.length === 0 && (
+            <p style={{ color: "var(--ink-2)" }}>
+              Aún no hay equipos. Usa "Nuevo Equipo" para crear el primero.
             </p>
+          )}
+        </div>
+      )}
 
-            <p>
-              <strong>Categoría:</strong>{" "}
-              {e.categoria || "-"}
-            </p>
+      {/* EQUIPOS DE LA CATEGORIA */}
+      {categoriaVigente && (
+        <div className="grid md:grid-cols-3 gap-5">
+          {equiposDeCategoria.map((e) => (
+            <Card
+              key={e.id}
+              className="rounded-2xl shadow-md"
+            >
+              <h2 className="text-xl font-bold mb-4">
+                {e.nombre_equipo}
+              </h2>
 
-            <p>
-              <strong>Marca:</strong>{" "}
-              {e.marca || "-"}
-            </p>
+              <p>
+                <strong>Marca:</strong>{" "}
+                {e.marca || "-"}
+              </p>
 
-            <p>
-              <strong>Modelo:</strong>{" "}
-              {e.modelo || "-" }
-            </p>
+              <p>
+                <strong>Modelo:</strong>{" "}
+                {e.modelo || "-" }
+              </p>
 
-            <p>
-              <strong>Ubicación Rack:</strong>{" "}
-              {e.ubicacion_rack || "-"}
-            </p>
+              <p>
+                <strong>Ubicación Rack:</strong>{" "}
+                {e.ubicacion_rack || "-"}
+              </p>
 
-            <p className="mt-2">
-              <strong>Estado:</strong>{" "}
-              <Tag color={colorEstado(e.estado)}>
-                {e.estado || "Sin definir"}
-              </Tag>
-            </p>
+              <p className="mt-2">
+                <strong>Estado:</strong>{" "}
+                <Tag color={colorEstado(e.estado)}>
+                  {e.estado || "Sin definir"}
+                </Tag>
+              </p>
 
-            <p className="mt-2">
-              <strong>Observaciones:</strong>{" "}
-              {e.observaciones || "Sin observaciones"}
-            </p>
+              <p className="mt-2">
+                <strong>Observaciones:</strong>{" "}
+                {e.observaciones || "Sin observaciones"}
+              </p>
 
-            <div className="flex gap-2 mt-5">
-              <Button onClick={() => abrirModal(e)}>
-                Editar
-              </Button>
+              <div className="flex gap-2 mt-5">
+                <Button onClick={() => abrirModal(e)}>
+                  Editar
+                </Button>
 
-              <Button
-                danger
-                onClick={() => eliminar(e.id)}
-              >
-                Eliminar
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+                <Button
+                  danger
+                  onClick={() => eliminar(e.id)}
+                >
+                  Eliminar
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* MODAL */}
       <Modal
@@ -278,10 +350,17 @@ export default function Inventario() {
 
             <Col xs={24} md={12}>
               <Form.Item
-                label="Categoría"
+                label="Categoría (elige una o escribe una nueva)"
                 name="categoria"
               >
-                <Input />
+                <AutoComplete
+                  options={categorias
+                    .filter((c) => c.nombre !== "Sin categoría")
+                    .map((c) => ({ value: c.nombre }))}
+                  filterOption={(texto, op) =>
+                    op.value.toLowerCase().includes(texto.toLowerCase())
+                  }
+                />
               </Form.Item>
             </Col>
 

@@ -1,1 +1,166 @@
 @import "tailwindcss";
+
+/* Consola de operaciones oscura (estilo NOC / SCADA) */
+:root {
+  --bg-0: #0b0f14;
+  --bg-1: #121821;
+  --bg-2: #1a222d;
+  --bg-3: #212b38;
+  --line: #26303c;
+  --line-soft: #1d2530;
+  --ink-1: #e7ebf0;
+  --ink-2: #8fa0b3;
+  --ink-3: #5c6b7c;
+  --accent: #33c7d6;
+  --accent-dim: #1b4148;
+  --ok: #35d07f;
+  --ok-bg: #12271d;
+  --warn: #f2a93b;
+  --warn-bg: #2a2013;
+  --crit: #f2555a;
+  --crit-bg: #2b1517;
+  --font-ui: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-0);
+  color: var(--ink-1);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-1);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-3);
+  border-radius: 6px;
+}
+
+/* ---------- animación de vista ---------- */
+@keyframes view-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.view-fade {
+  animation: view-fade 0.25s ease;
+}
+
+/* ---------- encabezados de sección ---------- */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.section-head h2 {
+  font-size: 17px;
+  margin: 0;
+  font-weight: 600;
+}
+.section-head p {
+  margin: 2px 0 0;
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+/* ---------- tarjetas de estadística ---------- */
+.stat-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.stat-card {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+}
+.stat-card .num {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1;
+}
+.stat-card .lbl {
+  color: var(--ink-2);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.stat-card.accent-ok .num {
+  color: var(--ok);
+}
+.stat-card.accent-warn .num {
+  color: var(--warn);
+}
+.stat-card.accent-crit .num {
+  color: var(--crit);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* ---------- ajustes sobre antd ---------- */
+.ant-card {
+  border-color: var(--line) !important;
+}
+.ant-table-wrapper .ant-table {
+  background: transparent;
+}
+.ant-table-wrapper .ant-table-thead > tr > th {
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ---------- SweetAlert2 en tema oscuro ---------- */
+.swal2-popup.swal-noc {
+  background: var(--bg-1);
+  color: var(--ink-1);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-family: var(--font-ui);
+}
+.swal2-popup.swal-noc .swal2-title {
+  color: var(--ink-1);
+  font-size: 18px;
+}
+.swal2-popup.swal-noc .swal2-html-container {
+  color: var(--ink-2);
+}
+
+/* títulos de página con la escala del diseño NOC */
+.content h1 {
+  font-size: 17px !important;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 16px !important;
+}
+.content h2.text-xl,
+.content h2.text-2xl {
+  font-size: 15px !important;
+}
