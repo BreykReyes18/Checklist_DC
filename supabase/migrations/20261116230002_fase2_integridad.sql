@@ -33,7 +33,7 @@ alter table public.usuarios
   foreign key (auth_id) references auth.users(id)
   on delete cascade;
 
--- Validaciones de valores
+-- Validaciones de valores (el rol de usuarios ya lo valida la llave foranea a roles)
 alter table public.centro_alarmas
   add constraint centro_alarmas_estado_chk
   check (estado in ('Activa', 'En monitoreo', 'Resuelta'));
@@ -49,10 +49,6 @@ alter table public.centro_alarmas
 alter table public.inventario_dc
   add constraint inventario_dc_estado_chk
   check (estado in ('Activo', 'Mantenimiento', 'Inactivo')) not valid;
-
-alter table public.usuarios
-  add constraint usuarios_rol_chk
-  check (rol in ('Administrador', 'Operador', 'Supervisor'));
 
 -- Una sola alarma abierta por equipo
 create unique index centro_alarmas_una_abierta_por_equipo

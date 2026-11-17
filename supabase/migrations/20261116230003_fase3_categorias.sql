@@ -54,17 +54,23 @@ create trigger inventario_dc_sincronizar_categoria
 alter table public.categorias_equipo enable row level security;
 revoke all on public.categorias_equipo from anon;
 
+drop policy if exists categorias_equipo_select on public.categorias_equipo;
+drop policy if exists categorias_equipo_insert on public.categorias_equipo;
+drop policy if exists categorias_equipo_update on public.categorias_equipo;
+drop policy if exists categorias_equipo_delete on public.categorias_equipo;
+
 create policy categorias_equipo_select on public.categorias_equipo
   for select to authenticated using (public.es_usuario_activo());
 
 create policy categorias_equipo_insert on public.categorias_equipo
-  for insert to authenticated with check (public.es_usuario_activo());
+  for insert to authenticated with check (public.tiene_permiso('categorias.crear'));
 
 create policy categorias_equipo_update on public.categorias_equipo
   for update to authenticated
-  using (public.es_usuario_activo()) with check (public.es_usuario_activo());
+  using (public.tiene_permiso('categorias.editar'))
+  with check (public.tiene_permiso('categorias.editar'));
 
 create policy categorias_equipo_delete on public.categorias_equipo
-  for delete to authenticated using (public.es_admin());
+  for delete to authenticated using (public.tiene_permiso('categorias.eliminar'));
 
 commit;

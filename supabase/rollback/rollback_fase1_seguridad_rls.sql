@@ -22,6 +22,11 @@ drop policy if exists usuarios_select on public.usuarios;
 drop policy if exists usuarios_insert on public.usuarios;
 drop policy if exists usuarios_update on public.usuarios;
 drop policy if exists usuarios_delete on public.usuarios;
+drop policy if exists "Usuarios ven sus bitacoras" on public.bitacora;
+drop policy if exists "Usuarios insertan su bitacora" on public.bitacora;
+drop policy if exists "Usuarios actualizan su bitacora" on public.bitacora;
+drop policy if exists "Usuarios eliminan su bitacora" on public.bitacora;
+drop policy if exists bitacoras_delete_policy on public.bitacoras;
 
 create policy "Usuarios ven sus bitacoras" on public.bitacora
   for select to authenticated using (auth.uid() = user_id);
@@ -33,6 +38,17 @@ create policy "Usuarios eliminan su bitacora" on public.bitacora
   for delete to authenticated using (auth.uid() = user_id);
 create policy bitacoras_delete_policy on public.bitacoras
   for delete to authenticated using (true);
+
+alter table public.usuarios drop constraint if exists usuarios_rol_fkey;
+
+drop table if exists public.permisos_rol;
+drop table if exists public.permisos_catalogo;
+drop table if exists public.roles;
+
+drop function if exists public.mis_permisos();
+drop function if exists public.tiene_permiso(text);
+drop function if exists public.es_admin();
+drop function if exists public.es_usuario_activo();
 
 alter table public.auditoria      disable row level security;
 alter table public.bitacoras      disable row level security;
