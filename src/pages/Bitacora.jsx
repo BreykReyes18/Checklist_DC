@@ -19,10 +19,8 @@ import {
   actualizarBitacora
 } from "../services/bitacoraService"
 import { getInventario } from "../services/inventarioService"
-import { ESTADOS_REVISION } from "../utils/constants"
 
-import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
+import { generarBitacoraPdf } from "../utils/bitacoraPdf"
 
 import {
   addAlarma,
@@ -336,117 +334,7 @@ ${comentarioAnterior}
   // =========================
   // PDF
   // =========================
-  const generarPDF = async () => {
-    const doc = new jsPDF()
-    const pageHeight = doc.internal.pageSize.height
-
-    try {
-      const img = new Image()
-      img.src = "/logo03.png"
-
-      await new Promise((resolve) => {
-        img.onload = resolve
-      })
-
-      doc.addImage(img, "PNG", 130, 8, 70, 20)
-    } catch (e) {
-      console.warn("Error cargando logo", e)
-    }
-
-    const getEstado = (id) => {
-      const eq = bitacora.equipos_extra?.find((e) => e.id === id)
-
-      if (!eq) return ESTADOS_REVISION.PENDIENTE
-      if (eq.alerta) return ESTADOS_REVISION.ALERTA
-      if (eq.revisado) return ESTADOS_REVISION.VERIFICADO
-
-      return ESTADOS_REVISION.PENDIENTE
-    }
-
-    const getColor = (value) => {
-      if (value === ESTADOS_REVISION.VERIFICADO) return [0, 150, 0]
-      if (value === ESTADOS_REVISION.ALERTA) return [200, 0, 0]
-      return [120, 120, 120]
-    }
-
-    const agrupados = agrupar(equipos)
-
-    doc.setFontSize(16)
-    doc.text("CASA PELLAS", 14, 15)
-
-    doc.setFontSize(12)
-    doc.text("BITÁCORA DATA CENTER", 14, 22)
-
-    doc.setFontSize(10)
-    doc.text(`Fecha: ${bitacora.fecha || "-"}`, 14, 28)
-    doc.text(`Responsable: ${bitacora.responsable || "-"}`, 14, 34)
-    doc.text(
-      `Temperatura: ${bitacora.temperatura ? `${bitacora.temperatura}°C` : "-"}`,
-      14,
-      40
-    )
-
-    let startY = 46
-
-    const makeTable = (title, rows) => {
-      autoTable(doc, {
-        startY,
-        head: [[title, "Estado"]],
-        body: rows,
-        styles: {
-          valign: "middle",
-          halign: "left",
-          cellPadding: 1
-        },
-        columnStyles: {
-          0: { cellWidth: 130 },
-          1: { cellWidth: 50, halign: "center" }
-        },
-        didParseCell: (data) => {
-          if (data.section === "body" && data.column.index === 1) {
-            const color = getColor(data.cell.raw)
-            data.cell.styles.textColor = color
-            data.cell.styles.fontStyle = "bold"
-          }
-        }
-      })
-
-      startY = doc.lastAutoTable.finalY + 4
-    }
-
-    Object.entries(agrupados).forEach(([cat, items]) => {
-      makeTable(
-        cat,
-        items.map((e) => {
-          const extra = bitacora.equipos_extra?.find((x) => x.id === e.id)
-          const estado = getEstado(e.id)
-
-          const nombre =
-            extra?.alerta && extra?.observacion
-              ? `${e.nombre_equipo}\nObs: ${extra.observacion}`
-              : e.nombre_equipo
-
-          return [nombre, estado]
-        })
-      )
-    })
-
-    doc.setFontSize(12)
-    doc.text("OBSERVACIONES:", 14, startY + 6)
-
-    doc.setFontSize(10)
-    doc.text(bitacora.observacion || "-", 14, startY + 12)
-
-    const footerY = pageHeight - 25
-
-    doc.text("_________________________", 40, footerY)
-    doc.text("Firma Operador", 55, footerY + 6)
-
-    doc.text("_________________________", 120, footerY)
-    doc.text("Firma Supervisor", 135, footerY + 6)
-
-    doc.save("Bitacora_DataCenter.pdf")
-  }
+  const generarPDF = () => generarBitacoraPdf({ bitacora, equipos })
 
   // =========================
   // UI
