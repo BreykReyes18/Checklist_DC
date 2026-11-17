@@ -118,6 +118,10 @@
   padding: 1px 6px;
   border-radius: 10px;
 }
+.nav-item .badge.warn {
+  background: rgba(242, 169, 59, 0.16);
+  color: var(--warn);
+}
 .sidebar.collapsed .nav-item .badge {
   display: none;
 }

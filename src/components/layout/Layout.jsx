@@ -22,6 +22,7 @@ import {
 
 import { useAuthStore } from "../../store/authStore"
 import { getAlarmas } from "../../services/centroAlarmasService"
+import { getPlanes, planEnAviso } from "../../services/mantenimientoService"
 import { getOperadorTurno } from "../../utils/constants"
 
 import "./Layout.css"
@@ -31,10 +32,10 @@ const NAV = [
   { key: "/inventario", permiso: "inventario.ver", icon: <DatabaseOutlined />, label: "Inventario", sub: "Equipos registrados del Data Center" },
   { key: "/bitacora", permiso: "bitacoras.ver", icon: <FileTextOutlined />, label: "Bitácora", sub: "Revisión de equipos por turno" },
   { key: "/entrega-turno", permiso: "entregas.ver", icon: <SwapOutlined />, label: "Entrega de Turno", sub: "Relevo entre operadores" },
-  { key: "/centro-alarmas", permiso: "alarmas.ver", icon: <AlertOutlined />, label: "Centro de Alarmas", sub: "Seguimiento y resolución de incidentes", badge: true },
+  { key: "/centro-alarmas", permiso: "alarmas.ver", icon: <AlertOutlined />, label: "Centro de Alarmas", sub: "Seguimiento y resolución de incidentes", badge: true, badgeKey: "alarmas" },
   { key: "/estado-equipos", icon: <CheckCircleOutlined />, label: "Estado de Equipos", sub: "Disponibilidad en tiempo real" },
   { key: "/escalamiento", icon: <WarningOutlined />, label: "Escalamiento Técnico", sub: "Contactos y niveles de escalamiento" },
-  { key: "/mantenimiento", icon: <ToolOutlined />, label: "Mantenimiento", sub: "Mantenimientos programados" },
+  { key: "/mantenimiento", permiso: "mantenimiento.ver", badgeKey: "mantenimiento", icon: <ToolOutlined />, label: "Mantenimiento", sub: "Mantenimientos programados" },
   { key: "/reportes", permiso: "bitacoras.ver", icon: <BarChartOutlined />, label: "Reportes", sub: "Historial y exportación" },
   { key: "/dashboard-ejecutivo", permiso: "bitacoras.ver", icon: <DashboardOutlined />, label: "Dashboard Ejecutivo", sub: "Indicadores consolidados" },
   { key: "/usuarios", icon: <TeamOutlined />, label: "Usuarios", sub: "Gestión de acceso" }
@@ -46,6 +47,7 @@ const formatClock = (d) =>
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false)
   const [alarmasActivas, setAlarmasActivas] = useState(0)
+  const [mantProximos, setMantProximos] = useState(0)
   const [now, setNow] = useState(new Date())
 
   const navigate = useNavigate()
@@ -77,11 +79,18 @@ export default function Layout() {
     let activo = true
 
     const contar = async () => {
-      const { data } = await getAlarmas()
-      if (activo && data) {
+      const [{ data }, planes] = await Promise.all([
+        getAlarmas(),
+        getPlanes()
+      ])
+      if (!activo) return
+      if (data) {
         setAlarmasActivas(
           data.filter((a) => a.estado === "Activa").length
         )
+      }
+      if (planes.data) {
+        setMantProximos(planes.data.filter(planEnAviso).length)
       }
     }
 
@@ -120,8 +129,13 @@ export default function Layout() {
             >
               <span className="icon">{item.icon}</span>
               <span className="label">{item.label}</span>
-              {item.badge && alarmasActivas > 0 && (
+              {item.badgeKey === "alarmas" && alarmasActivas > 0 && (
                 <span className="badge">{alarmasActivas}</span>
+              )}
+              {item.badgeKey === "mantenimiento" && mantProximos > 0 && (
+                <span className="badge warn" title="Mantenimientos próximos o vencidos">
+                  {mantProximos}
+                </span>
               )}
             </button>
           ))}

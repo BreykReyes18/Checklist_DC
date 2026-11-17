@@ -112,7 +112,11 @@ export default function App() {
           {/* MANTENIMIENTO */}
           <Route
             path="mantenimiento"
-            element={<Mantenimiento />}
+            element={
+              <RoleProtectedRoute permiso="mantenimiento.ver">
+                <Mantenimiento />
+              </RoleProtectedRoute>
+            }
           />
 
           {/* REPORTES */}
