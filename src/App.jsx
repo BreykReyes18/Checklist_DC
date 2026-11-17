@@ -14,6 +14,7 @@ import {
 
 import Layout from "./components/layout/Layout.jsx"
 import ProtectedRoute from "./components/ProtectedRoute"
+import RoleProtectedRoute from "./components/RoleProtectedRoute"
 
 /* PÁGINAS */
 import Login from "./pages/Login"
@@ -111,10 +112,13 @@ export default function App() {
           />
 
           {/* USUARIOS */}
-          {/* SIN RoleProtectedRoute por ahora para evitar cierre de sesión */}
           <Route
             path="usuarios"
-            element={<Usuarios />}
+            element={
+              <RoleProtectedRoute allowedRoles={["Administrador"]}>
+                <Usuarios />
+              </RoleProtectedRoute>
+            }
           />
         </Route>
 

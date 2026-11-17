@@ -49,7 +49,8 @@ export default function Layout() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { logout } = useAuthStore()
+  const { logout, esAdmin } = useAuthStore()
+  const navVisible = NAV.filter((n) => n.key !== "/usuarios" || esAdmin)
 
   const actual =
     NAV.find((n) => n.key === location.pathname) || NAV[0]
@@ -94,7 +95,7 @@ export default function Layout() {
         </div>
 
         <nav className="nav">
-          {NAV.map((item) => (
+          {navVisible.map((item) => (
             <button
               key={item.key}
               type="button"

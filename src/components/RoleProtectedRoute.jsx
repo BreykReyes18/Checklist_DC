@@ -8,15 +8,9 @@ export default function RoleProtectedRoute({
   children,
   allowedRoles
 }) {
-  const { usuario } = useAuthStore()
+  const { perfil } = useAuthStore()
 
-  // Si no hay usuario → login
-  if (!usuario) {
-    return <Navigate to="/login" replace />
-  }
-
-  // Si el rol no está permitido → dashboard
-  if (!allowedRoles.includes(usuario.rol)) {
+  if (!perfil || !allowedRoles.includes(perfil.rol)) {
     return <Navigate to="/" replace />
   }
 

@@ -1,133 +1,128 @@
 // src/pages/Usuarios.jsx
-// PANEL ADMIN PRO - CREAR USUARIOS + TABLA
+// Administracion de usuarios: solo visible para el Administrador
 
-import React, { useState } from "react"
+import React, { useEffect, useState, useCallback } from "react"
+import { Card, Input, Button, Select, Table, Switch, message } from "antd"
+
 import {
-  Card,
-  Input,
-  Button,
-  Select,
-  Table,
-  Tag,
-  Switch
-} from "antd"
+  getUsuarios,
+  getRoles,
+  actualizarUsuario,
+  crearUsuario
+} from "../services/userService"
+import { useAuthStore } from "../store/authStore"
 
-import { crearUsuario } from "../services/userService"
-
-const { Option } = Select
+const FORM_VACIO = {
+  nombre: "",
+  usuario: "",
+  email: "",
+  password: "",
+  rol: undefined,
+  area: ""
+}
 
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([])
+  const [roles, setRoles] = useState([])
+  const [cargando, setCargando] = useState(true)
+  const [guardando, setGuardando] = useState(false)
+  const [form, setForm] = useState(FORM_VACIO)
+  const [msg, contexto] = message.useMessage()
+  const { perfil } = useAuthStore()
 
-  const [form, setForm] = useState({
-    nombre: "",
-    usuario: "",
-    email: "",
-    password: "",
-    rol: "",
-    area: ""
-  })
+  const cargar = useCallback(async () => {
+    try {
+      const [u, r] = await Promise.all([getUsuarios(), getRoles()])
+      setUsuarios(u)
+      setRoles(r)
+    } catch (e) {
+      msg.error(e.message)
+    } finally {
+      setCargando(false)
+    }
+  }, [msg])
 
-  const guardarUsuario = async () => {
-    if (
-      !form.nombre ||
-      !form.usuario ||
-      !form.email ||
-      !form.password ||
-      !form.rol
-    ) {
-      alert("Completa todos los campos obligatorios")
+  useEffect(() => {
+    cargar()
+  }, [cargar])
+
+  const guardarCambio = async (registro, cambios) => {
+    try {
+      const nuevo = await actualizarUsuario(registro.id, cambios)
+      setUsuarios((prev) =>
+        prev.map((u) => (u.id === registro.id ? { ...u, ...nuevo } : u))
+      )
+      msg.success("Cambio guardado")
+    } catch (e) {
+      msg.error(e.message)
+    }
+  }
+
+  const crear = async () => {
+    const { nombre, usuario, email, password, rol } = form
+    if (!nombre || !usuario || !email || !password || !rol) {
+      msg.warning("Completa todos los campos obligatorios")
       return
     }
 
-    const ok = await crearUsuario({
-      email: form.email,
-      password: form.password,
-      nombre: form.nombre,
-      usuario: form.usuario,
-      rol: form.rol,
-      area: form.area
-    })
-
-    if (!ok) return
-
-    const nuevoUsuario = {
-      id: Date.now(),
-      nombre: form.nombre,
-      usuario: form.usuario,
-      correo: form.email,
-      rol: form.rol,
-      area: form.area,
-      activo: true
+    setGuardando(true)
+    try {
+      await crearUsuario({ ...form })
+      msg.success("Usuario creado")
+      setForm(FORM_VACIO)
+      await cargar()
+    } catch (e) {
+      msg.error(e.message)
+    } finally {
+      setGuardando(false)
     }
-
-    setUsuarios([nuevoUsuario, ...usuarios])
-
-    setForm({
-      nombre: "",
-      usuario: "",
-      email: "",
-      password: "",
-      rol: "",
-      area: ""
-    })
   }
 
-  const cambiarEstado = (id) => {
-    setUsuarios((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? { ...u, activo: !u.activo }
-          : u
-      )
-    )
-  }
+  const esPropio = (r) => r.auth_id === perfil?.auth_id || r.id === perfil?.id
 
   const columnas = [
-    {
-      title: "Nombre",
-      dataIndex: "nombre",
-      key: "nombre"
-    },
-    {
-      title: "Usuario",
-      dataIndex: "usuario",
-      key: "usuario"
-    },
-    {
-      title: "Correo",
-      dataIndex: "correo",
-      key: "correo"
-    },
+    { title: "Nombre", dataIndex: "nombre", key: "nombre" },
+    { title: "Usuario", dataIndex: "usuario", key: "usuario" },
+    { title: "Correo", dataIndex: "correo", key: "correo" },
     {
       title: "Rol",
       dataIndex: "rol",
       key: "rol",
-      render: (rol) => (
-        <Tag color={
-          rol === "Administrador"
-            ? "red"
-            : "blue"
-        }>
-          {rol}
-        </Tag>
+      render: (rol, r) => (
+        <Select
+          value={rol}
+          style={{ width: 160 }}
+          disabled={esPropio(r)}
+          onChange={(v) => guardarCambio(r, { rol: v })}
+          options={roles.map((x) => ({ value: x.nombre, label: x.nombre }))}
+        />
       )
     },
     {
       title: "Área",
       dataIndex: "area",
-      key: "area"
+      key: "area",
+      render: (area, r) => (
+        <Input
+          defaultValue={area}
+          style={{ width: 180 }}
+          onBlur={(e) => {
+            if (e.target.value !== (area || "")) {
+              guardarCambio(r, { area: e.target.value })
+            }
+          }}
+        />
+      )
     },
     {
       title: "Activo",
       dataIndex: "activo",
       key: "activo",
-      render: (_, record) => (
+      render: (activo, r) => (
         <Switch
-          checked={record.activo}
-          onChange={() =>
-            cambiarEstado(record.id)
-          }
+          checked={activo !== false}
+          disabled={esPropio(r)}
+          onChange={(v) => guardarCambio(r, { activo: v })}
         />
       )
     }
@@ -135,115 +130,62 @@ export default function Usuarios() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">
-        Administración de Usuarios
-      </h1>
+      {contexto}
+      <h1 className="mb-6">Administración de Usuarios</h1>
 
-      <Card className="rounded-2xl shadow-lg mb-6">
-
+      <Card className="mb-6">
         <div className="grid md:grid-cols-2 gap-4">
-
           <Input
             placeholder="Nombre completo"
             value={form.nombre}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                nombre: e.target.value
-              })
-            }
+            onChange={(e) => setForm({ ...form, nombre: e.target.value })}
           />
-
           <Input
             placeholder="Usuario"
             value={form.usuario}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                usuario: e.target.value
-              })
-            }
+            onChange={(e) => setForm({ ...form, usuario: e.target.value })}
           />
-
           <Input
             placeholder="Correo"
             value={form.email}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                email: e.target.value
-              })
-            }
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
-
           <Input.Password
-            placeholder="Contraseña"
+            placeholder="Contraseña (mínimo 8 caracteres)"
             value={form.password}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                password: e.target.value
-              })
-            }
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
-
           <Select
             placeholder="Rol"
-            value={form.rol || undefined}
-            onChange={(value) =>
-              setForm({
-                ...form,
-                rol: value
-              })
-            }
-          >
-            <Option value="Administrador">
-              Administrador
-            </Option>
-
-            <Option value="Operador">
-              Operador
-            </Option>
-
-            <Option value="Supervisor">
-              Supervisor
-            </Option>
-          </Select>
-
+            value={form.rol}
+            onChange={(v) => setForm({ ...form, rol: v })}
+            options={roles.map((x) => ({ value: x.nombre, label: x.nombre }))}
+          />
           <Input
             placeholder="Área"
             value={form.area}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                area: e.target.value
-              })
-            }
+            onChange={(e) => setForm({ ...form, area: e.target.value })}
           />
-
         </div>
 
         <Button
           type="primary"
           className="mt-4"
-          onClick={guardarUsuario}
+          loading={guardando}
+          onClick={crear}
         >
           Crear Usuario
         </Button>
-
       </Card>
 
-      <Card className="rounded-2xl shadow-lg">
-
+      <Card>
         <Table
           columns={columnas}
           dataSource={usuarios}
           rowKey="id"
-          pagination={{
-            pageSize: 8
-          }}
+          loading={cargando}
+          pagination={{ pageSize: 8 }}
         />
-
       </Card>
     </div>
   )
