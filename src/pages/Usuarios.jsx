@@ -43,8 +43,19 @@ export default function Usuarios() {
   }, [msg])
 
   useEffect(() => {
-    cargar()
-  }, [cargar])
+    let vigente = true
+    Promise.all([getUsuarios(), getRoles()])
+      .then(([u, r]) => {
+        if (!vigente) return
+        setUsuarios(u)
+        setRoles(r)
+      })
+      .catch((e) => vigente && msg.error(e.message))
+      .finally(() => vigente && setCargando(false))
+    return () => {
+      vigente = false
+    }
+  }, [msg])
 
   const guardarCambio = async (registro, cambios) => {
     try {
