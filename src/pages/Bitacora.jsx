@@ -376,6 +376,7 @@ ${comentarioAnterior}
 
         <Input.TextArea
           rows={3}
+          style={{ marginTop: 16 }}
           placeholder="Observación"
           value={bitacora.observacion}
           onChange={(e) =>
@@ -383,7 +384,9 @@ ${comentarioAnterior}
           }
         />
 
-        <Divider>Checklist por Equipos</Divider>
+        <Divider style={{ marginTop: 32, marginBottom: 24 }}>
+          Checklist por Equipos
+        </Divider>
 
         {Object.entries(agrupadosUI).map(([cat, items]) => (
           <Card
